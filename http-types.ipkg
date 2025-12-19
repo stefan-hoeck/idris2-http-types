@@ -9,3 +9,4 @@ depends    = base         >= 0.8.0
            , json-simple
 
 modules = HTTP.URI
+        , HTTP.URI.Parser
