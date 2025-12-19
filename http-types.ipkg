@@ -8,6 +8,17 @@ depends    = base         >= 0.8.0
            , ilex
            , json-simple
 
-modules = HTTP.URI
-        , HTTP.URI.Parser
+modules = HTTP.API
+        , HTTP.API.Decode
+        , HTTP.API.DSL
+        , HTTP.API.Encode
+
+        , HTTP.Header
+        , HTTP.Method
+        , HTTP.MimeType
+        , HTTP.Request
+        , HTTP.RequestErr
         , HTTP.Status
+
+        , HTTP.URI
+        , HTTP.URI.Parser
