@@ -10,3 +10,4 @@ depends    = base         >= 0.8.0
 
 modules = HTTP.URI
         , HTTP.URI.Parser
+        , HTTP.URI.Status
