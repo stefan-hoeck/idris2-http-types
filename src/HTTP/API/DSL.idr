@@ -13,8 +13,10 @@ import HTTP.Status
 --------------------------------------------------------------------------------
 
 public export
-data ReqBody : (formats : List Type) -> (val : Type) -> Type where
-  Body : (0 fs : List Type) -> (0 res : Type) -> ReqBody fs res
+record ReqBody where
+  constructor Body
+  0 formats : List Type
+  0 result  : Type
 
 --------------------------------------------------------------------------------
 -- Method
