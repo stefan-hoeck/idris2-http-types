@@ -1,0 +1,11 @@
+package http-types
+
+authors    = "stefan-hoeck"
+brief      = "Types and utilities for working with HTTP requests and responses"
+version    = 0.8.0
+sourcedir  = "src"
+depends    = base         >= 0.8.0
+           , ilex
+           , json-simple
+
+modules = HTTP.URI
