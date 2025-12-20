@@ -1,13 +1,10 @@
 module HTTP.API.Server
 
-import public HTTP.API.DSL
-import public HTTP.API.Decode
-import public HTTP.Header
+import Data.List
+import public HTTP.API
 import public HTTP.Prog
 import public HTTP.Request
 import public HTTP.Response
-import public HTTP.Status
-import public HTTP.URI
 
 %default total
 
@@ -231,20 +228,33 @@ Serve ReqPath where
 -- Queries
 --------------------------------------------------------------------------------
 
--- convertQ : All QField ts -> All Decode ts -> Queries -> Either DecodeErr (HList ts)
--- convertQ []               []        qs = Right []
--- convertQ ((n ?? t) :: xs) (y :: ys) qs = Prelude.do
---   let Just bs := lookup n qs | Nothing => Left (Msg "Missing query parameter: '\{n}'")
---   v  <- decodeAs t bs
---   vs <- convertQ xs ys qs
---   Right $ v::vs
---
--- public export
--- (all : All Decode ts) => Serve (RequestQuery ts) where
---   InTypes                 = ts
---   OutTypes                = []
---   outs                    = []
---   canHandle _ r           = True
---   fromRequest (Query q) r =
---     either (throw . decodeErr badRequest400) pure $ convertQ q all r.uri.queries
---   adjResponse _ _ _       = pure
+convertQ :
+     (fs : List QField)
+  -> All Decode (QueryConstraintTypes fs)
+  -> Queries
+  -> Either DecodeErr (HList (QueryTypes fs))
+convertQ []               []        qs = Right []
+convertQ ((n ?? t) :: xs) (y :: ys) qs = Prelude.do
+  let Just (QVal bs) := lookup n qs
+        | Nothing     => Left (Msg "Missing query parameter: '\{n}'")
+        | Just QEmpty => Left (Msg "Missing query value: '\{n}'")
+  v  <- decodeAs t bs
+  vs <- convertQ xs ys qs
+  Right $ v::vs
+convertQ (QBool n :: xs) ys qs = Prelude.do
+  vs <- convertQ xs ys qs
+  Right $ isJust (lookup n qs) :: vs
+
+public export
+Serve ReqQuery where
+  InTypes q               = QueryTypes q.fields
+  OutTypes _              = []
+  Constraint q            = All Decode (QueryConstraintTypes q.fields)
+  outs q                  = []
+  canHandle _ r           = True
+  adjResponse _ _ _       = pure
+  fromRequest q r         =
+    either
+      (throw . decodeErr badRequest400)
+      pure
+      (convertQ q.fields con r.uri.queries)

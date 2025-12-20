@@ -104,7 +104,13 @@ QueryTypes ((_ ?? t) :: xs) = t :: QueryTypes xs
 QueryTypes (QBool _ :: xs)  = Bool :: QueryTypes xs
 
 public export
-record RequestQuery where
+0 QueryConstraintTypes : List QField -> List Type
+QueryConstraintTypes []               = []
+QueryConstraintTypes ((_ ?? t) :: xs) = t :: QueryConstraintTypes xs
+QueryConstraintTypes (QBool _ :: xs)  = QueryConstraintTypes xs
+
+public export
+record ReqQuery where
   constructor Query
   fields : List QField
 
