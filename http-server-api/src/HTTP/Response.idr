@@ -1,11 +1,7 @@
 module HTTP.Response
 
-import Data.Buffer
-import Data.ByteString
-import Data.List.Quantifiers
-import HTTP.API.Encode
-import HTTP.Header
-import HTTP.Status
+import HTTP.API
+import JSON.Simple
 
 %default total
 
@@ -26,15 +22,15 @@ record Response where
 
 export
 empty : Response
-empty = RP empty []
+empty = RP emptyHeaders []
 
 export
 addHeader :  ByteString -> ByteString  -> Response -> Response
-addHeader x y = {headers $= insert x y}
+addHeader x y = {headers $= insertHeader x y}
 
 export
 setStatus : Status -> Response -> Response
-setStatus s = addHeader "status" (cast s)
+setStatus s = addHeader "Status" (cast s)
 
 crlf : ByteString
 crlf = "\r\n"
@@ -64,27 +60,27 @@ encodeBody s v hs (e :: es) rs =
     False => encodeBody s v hs es rs
     True  => {content := encodeVia v e} rs |> setContentType e |> setStatus s
 
--- --------------------------------------------------------------------------------
--- --          Common Responses
--- --------------------------------------------------------------------------------
---
--- encErr : All (EncodeVia RequestErr) [JSON, Text]
--- encErr = %search
---
--- export
--- fromError : Headers -> RequestErr -> Response
--- fromError hs re@(RE st err _ _ _) =
---  let u := maybe "" toString $ requestPath hs
---   in encodeBody (MkStatus st err) ({path := u} re) hs encErr empty
---
--- export
--- fromStatus : Headers -> Status -> Response
--- fromStatus hs = fromError hs . requestErr
---
--- export
--- notFound : Headers -> Response
--- notFound hs = fromStatus hs notFound404
---
--- export
--- forbidden : Headers -> Response
--- forbidden hs = fromStatus hs forbidden403
+--------------------------------------------------------------------------------
+--          Common Responses
+--------------------------------------------------------------------------------
+
+encErr : All (EncodeVia RequestErr) [JSON, Text]
+encErr = %search
+
+export
+fromError : Maybe URI -> Headers -> RequestErr -> Response
+fromError mu hs re@(RE st err _ _ _) =
+ let u := maybe "" interpolate mu
+  in encodeBody (MkStatus st err) ({path := u} re) hs encErr empty
+
+export
+fromStatus : URI -> Headers -> Status -> Response
+fromStatus u hs = fromError (Just u) hs . requestErr
+
+export
+notFound : URI -> Headers -> Response
+notFound u hs = fromStatus u hs notFound404
+
+export
+forbidden : URI -> Headers -> Response
+forbidden u hs = fromStatus u hs forbidden403

@@ -77,6 +77,3 @@ parseURI o = map toURI . parseBytes uri o
 export %inline
 Interpolation URI where
   interpolate = toString . encodeURI
-
-test : ByteString -> IO ()
-test = putStrLn . either interpolate interpolate . parseURI Virtual

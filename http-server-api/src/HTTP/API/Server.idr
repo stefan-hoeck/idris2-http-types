@@ -163,10 +163,10 @@ Serve ReqBody where
 -- Method
 --------------------------------------------------------------------------------
 
-checkResponseTypes : All (EncodeVia t) ts -> Request -> Handler (HList [])
+checkResponseTypes : All (EncodeVia t) ts -> Request -> Handler ()
 checkResponseTypes a r =
   case any (acceptsMedia r.headers) (forget $ mapProperty (\x => mediaType @{x}) a) of
-    True  => pure []
+    True  => pure ()
     False => throw $ requestErr unsupportedMediaType415
 
 public export
@@ -176,8 +176,11 @@ Serve ReqMethod where
   Constraint m = All (EncodeVia (MethodResult m)) m.formats
   outs     _ = %search
   canHandle (M m _ _ _) r = m == r.method
-  fromRequest m r = checkResponseTypes con r
-  adjResponse m [v] req = pure . encodeBody m.status v req.headers con
+  fromRequest m r = pure []
+  adjResponse (M _ _ _ Nothing0)  _   req resp = pure resp
+  adjResponse (M _ s _ $ Just0 _) [v] req resp = do
+    checkResponseTypes con req
+    pure $ encodeBody s v req.headers con resp
 
 --------------------------------------------------------------------------------
 -- Path
