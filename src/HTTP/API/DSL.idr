@@ -31,7 +31,7 @@ record ReqMethod where
   method    : Method
   status    : Status
   0 formats : List Type
-  0 result  : Maybe0 Type
+  result  : Maybe0 Type
 
 public export
 0 MethodResult : ReqMethod -> Type

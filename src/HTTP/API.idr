@@ -7,6 +7,7 @@ import public HTTP.API.Encode
 import public HTTP.Header
 import public HTTP.Method
 import public HTTP.MimeType
+import public HTTP.RequestErr
 import public HTTP.Status
 import public HTTP.URI
 

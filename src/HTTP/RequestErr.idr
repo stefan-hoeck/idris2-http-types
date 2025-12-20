@@ -34,3 +34,11 @@ Interpolation RequestErr where
 export
 requestErr : Status -> RequestErr
 requestErr (MkStatus c e) = RE c e "" "" ""
+
+export
+requestErrMsg : String -> Status -> RequestErr
+requestErrMsg m (MkStatus c e) = RE c e m "" ""
+
+export
+requestErrDetails : Interpolation a => a -> Status -> RequestErr
+requestErrDetails v (MkStatus c e) = RE c e "" "\{v}" ""

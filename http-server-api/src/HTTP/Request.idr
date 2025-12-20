@@ -1,9 +1,8 @@
 module HTTP.Request
 
-import Data.ByteString
-import HTTP.Header
-import HTTP.Method
-import HTTP.URI
+import Control.Monad.MErr
+import HTTP.API
+import Text.ILex
 
 %default total
 
@@ -24,8 +23,26 @@ record Request where
   ||| URI of the request
   uri         : URI
 
-  ||| The total size of the content in case of a POST request
-  contentSize : Nat
-
   ||| Content
   content     : ByteString
+
+parameters {auto merr : MErr f}
+           {auto has  : Has RequestErr es}
+
+  export
+  requestMethod : ByteString -> f es Method
+  requestMethod bs =
+    case toString bs of
+      "GET"    => pure GET
+      "PUT"    => pure PUT
+      "POST"   => pure POST
+      "DELETE" => pure DELETE
+      s        => throw $ requestErrMsg "Unknown HTTP method: \{s}" badRequest400
+
+
+  export
+  requestURI : ByteString -> f es URI
+  requestURI bs =
+    case parseURI Virtual bs of
+      Left  x => throw $ requestErrDetails x badRequest400
+      Right u => pure u
