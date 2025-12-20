@@ -48,7 +48,7 @@ responseBytes (RP hs bs) =
 
 export
 setContentType : EncodeVia f t -> Response -> Response
-setContentType e = addHeader "content-type" (fromString $ mediaType @{e})
+setContentType e = addHeader "Content-Type" (fromString $ mediaType @{e})
 
 export
 encodeBody :
