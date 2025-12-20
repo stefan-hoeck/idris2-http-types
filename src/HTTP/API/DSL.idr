@@ -1,10 +1,13 @@
 module HTTP.API.DSL
 
-import Data.Buffer
-import Data.ByteString
-import Data.List.Quantifiers
-import HTTP.Method
-import HTTP.Status
+import public Data.Buffer
+import public Data.ByteString
+import public Data.List.Quantifiers
+import public Data.Maybe0
+import public HTTP.API.Decode
+import public HTTP.API.Encode
+import public HTTP.Method
+import public HTTP.Status
 
 %default total
 
@@ -13,47 +16,51 @@ import HTTP.Status
 --------------------------------------------------------------------------------
 
 public export
-data ReqBody : (formats : List Type) -> (val : Type) -> Type where
-  Body : (0 fs : List Type) -> (0 res : Type) -> ReqBody fs res
+record ReqBody where
+  constructor Body
+  0 formats : List Type
+  0 result  : Type
 
 --------------------------------------------------------------------------------
 -- Method
 --------------------------------------------------------------------------------
 
 public export
-record ReqMethod (formats : List Type) (val : Type) where
+record ReqMethod where
   constructor M
-  method : Method
-  status : Status
+  method    : Method
+  status    : Status
+  0 formats : List Type
+  0 result  : Maybe0 Type
 
 public export
-Get : (0 formats : List Type) -> (0 val : Type) -> ReqMethod formats val
-Get _ _ = M GET ok200
+0 MethodResult : ReqMethod -> Type
+MethodResult (M _ _ _ $ Just0 t)  = t
+MethodResult (M _ _ _ $ Nothing0) = ()
 
 public export
-Post : (0 formats : List Type) -> (0 val : Type) -> ReqMethod formats val
-Post _ _ = M POST ok200
+Get : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
+Get fs v = M GET ok200 fs (Just0 v)
 
 public export
-Put : (0 formats : List Type) -> (0 val : Type) -> ReqMethod formats val
-Put _ _ = M PUT ok200
+Post : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
+Post fs v = M POST ok200 fs (Just0 v)
 
 public export
-record ReqMethod' where
-  constructor M'
-  method : Method
+Put : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
+Put fs v = M PUT ok200 fs (Just0 v)
 
 public export
-Get' : ReqMethod'
-Get' = M' GET
+Get' : ReqMethod
+Get' = M GET noContent204 [] Nothing0
 
 public export
-Post' : ReqMethod'
-Post' = M' POST
+Post' : ReqMethod
+Post' = M POST noContent204 [] Nothing0
 
 public export
-Put' : ReqMethod'
-Put' = M' PUT
+Put' : ReqMethod
+Put' = M PUT noContent204 [] Nothing0
 
 --------------------------------------------------------------------------------
 -- Path
@@ -74,8 +81,9 @@ PartsTypes (PStr _    :: xs) = PartsTypes xs
 PartsTypes (Capture t :: xs) = t :: PartsTypes xs
 
 public export
-data RequestPath : List Type -> Type where
-  Path : (parts : List Part) -> RequestPath (PartsTypes parts)
+record ReqPath where
+  constructor Path
+  parts : List Part
 
 --------------------------------------------------------------------------------
 -- Queries
@@ -85,13 +93,26 @@ export
 infix 3 ??
 
 public export
-data QField : (t : Type) -> Type where
-  (??)  : (name : ByteString) -> (0 type : Type) -> QField type
-  QBool : (name : ByteString) -> QField Bool
+data QField : Type where
+  (??)  : (name : ByteString) -> (0 type : Type) -> QField
+  QBool : (name : ByteString) -> QField
 
 public export
-data RequestQuery : (ts : List Type) -> Type where
-  Query : All QField ts -> RequestQuery ts
+0 QueryTypes : List QField -> List Type
+QueryTypes []               = []
+QueryTypes ((_ ?? t) :: xs) = t :: QueryTypes xs
+QueryTypes (QBool _ :: xs)  = Bool :: QueryTypes xs
+
+public export
+0 QueryConstraintTypes : List QField -> List Type
+QueryConstraintTypes []               = []
+QueryConstraintTypes ((_ ?? t) :: xs) = t :: QueryConstraintTypes xs
+QueryConstraintTypes (QBool _ :: xs)  = QueryConstraintTypes xs
+
+public export
+record ReqQuery where
+  constructor Query
+  fields : List QField
 
 --------------------------------------------------------------------------------
 -- List Utilities

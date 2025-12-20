@@ -16,7 +16,6 @@ modules = HTTP.API
         , HTTP.Header
         , HTTP.Method
         , HTTP.MimeType
-        , HTTP.Request
         , HTTP.RequestErr
         , HTTP.Status
 

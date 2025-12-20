@@ -2,3 +2,8 @@
 type   = "local"
 path   = "."
 ipkg   = "http-types.ipkg"
+
+[custom.all.http-server-api]
+type   = "local"
+path   = "http-server-api"
+ipkg   = "http-server-api.ipkg"

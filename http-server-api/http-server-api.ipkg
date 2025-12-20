@@ -1,0 +1,13 @@
+package http-server-api
+
+authors    = "stefan-hoeck"
+brief      = "Server-side interpreter for HTTP API"
+version    = 0.8.0
+sourcedir  = "src"
+depends    = http-types
+           , streams-posix
+
+modules = HTTP.API.Server
+        , HTTP.Prog
+        , HTTP.Request
+        , HTTP.Response
