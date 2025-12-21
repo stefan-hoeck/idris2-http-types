@@ -34,9 +34,11 @@ parameters {auto merr : MErr f}
   requestMethod bs =
     case toString bs of
       "GET"    => pure GET
-      "PUT"    => pure PUT
+      "HEAD"   => pure HEAD
       "POST"   => pure POST
+      "PUT"    => pure PUT
       "DELETE" => pure DELETE
+      "PATCH"  => pure PATCH
       s        => throw $ requestErrMsg "Unknown HTTP method: \{s}" badRequest400
 
 
