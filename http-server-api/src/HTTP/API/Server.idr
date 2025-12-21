@@ -13,20 +13,24 @@ import public HTTP.Response
 %default total
 
 public export
-data Server : APIs -> Type where
+data Server : Endpoints -> Type where
   Nil  : Server []
   (::) :
        {0 ts       : List Type}
-    -> {0 as       : APIs}
+    -> {0 as       : Endpoints}
     -> {endpoint   : HList ts}
     -> {auto all   : All Serve ts}
     -> {auto con   : HList (Constraints endpoint)}
-    -> Endpoint endpoint
+    -> EndpointHandler endpoint
     -> Server as
     -> Server (endpoint :: as)
 
 export
-serveAll : (0 apis   : APIs) -> Server apis -> Request -> Handler Response
+serveAll :
+     (0 endpoints : Endpoints)
+  -> Server endpoints
+  -> Request
+  -> Handler Response
 serveAll [] [] req = throw (requestErr notFound404)
 serveAll (endpoint :: as) ((::) {endpoint} f x) req =
   case canServe endpoint req of
