@@ -9,6 +9,7 @@ depends    = http-types
 
 modules = HTTP.API.Server
         , HTTP.API.Server.Content
+        , HTTP.API.Server.Header
         , HTTP.API.Server.Interface
         , HTTP.API.Server.Method
         , HTTP.API.Server.Path
