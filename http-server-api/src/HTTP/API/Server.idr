@@ -26,6 +26,11 @@ data Server : Endpoints -> Type where
     -> Server as
     -> Server (endpoint :: as)
 
+public export
+(++) : Server es -> Server fs -> Server (es ++ fs)
+(++) []      sfs = sfs
+(++) (s::ss) sfs = s :: (ss ++ sfs)
+
 export
 serveAll :
      (0 endpoints : Endpoints)
