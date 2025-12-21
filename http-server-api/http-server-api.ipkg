@@ -8,6 +8,11 @@ depends    = http-types
            , streams-posix
 
 modules = HTTP.API.Server
+        , HTTP.API.Server.Content
+        , HTTP.API.Server.Interface
+        , HTTP.API.Server.Method
+        , HTTP.API.Server.Path
+        , HTTP.API.Server.Query
         , HTTP.Prog
         , HTTP.Request
         , HTTP.Response

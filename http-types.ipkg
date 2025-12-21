@@ -9,9 +9,14 @@ depends    = base         >= 0.8.0
            , json-simple
 
 modules = HTTP.API
+        , HTTP.API.APIs
+        , HTTP.API.Content
         , HTTP.API.Decode
-        , HTTP.API.DSL
         , HTTP.API.Encode
+        , HTTP.API.Method
+        , HTTP.API.Path
+        , HTTP.API.Query
+        , HTTP.API.TList
 
         , HTTP.Header
         , HTTP.Method
