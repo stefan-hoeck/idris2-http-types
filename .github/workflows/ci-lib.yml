@@ -30,4 +30,4 @@ jobs:
       - name: Build http-types
         run: pack install http-types
       - name: Build http-server-api
-        run: pack install http-server-api
+        run: pack --no-prompt install http-server-api
