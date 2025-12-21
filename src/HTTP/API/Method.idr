@@ -35,12 +35,28 @@ Post : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
 Post fs v = M POST ok200 fs (Just0 v)
 
 public export
+PostCreated : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
+PostCreated fs v = M POST created201 fs (Just0 v)
+
+public export
 Put : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
 Put fs v = M PUT ok200 fs (Just0 v)
 
 public export
-Get' : ReqMethod
-Get' = M GET noContent204 [] Nothing0
+PutCreated : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
+PutCreated fs v = M PUT created201 fs (Just0 v)
+
+public export
+Patch : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
+Patch fs v = M PATCH ok200 fs (Just0 v)
+
+public export
+Head : ReqMethod
+Head = M HEAD noContent204 [] Nothing0
+
+public export
+Delete : ReqMethod
+Delete = M DELETE noContent204 [] Nothing0
 
 public export
 Post' : ReqMethod
@@ -49,3 +65,7 @@ Post' = M POST noContent204 [] Nothing0
 public export
 Put' : ReqMethod
 Put' = M PUT noContent204 [] Nothing0
+
+public export
+Patch' : ReqMethod
+Patch' = M PATCH noContent204 [] Nothing0
