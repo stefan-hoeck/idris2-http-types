@@ -27,5 +27,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Build library
+      - name: Build http-types
         run: pack install http-types
+      - name: Build http-server-api
+        run: pack --no-prompt install http-server-api

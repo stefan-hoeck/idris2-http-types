@@ -53,8 +53,24 @@ Fun []        r = r
 Fun (t :: ts) r = t -> Fun ts r
 
 public export
-0 API : All Serve ts => (vs : HList ts) -> Sing (AllOutTypes vs) => Type
-API vs = Fun (AllInTypes vs) (Handler (GetSing $ AllOutTypes vs))
+0 ResultType : List Type -> Type
+ResultType []  = ()
+ResultType [t] = t
+ResultType ts  = HList ts
+
+public export
+allOuts : All Serve ts => (hl : HList ts) -> TList (AllOutTypes hl)
+allOuts @{[]}   []      = []
+allOuts @{_::_} (v::vs) = outs v ++ allOuts vs
+
+wrapResult : TList ts -> ResultType ts -> HList ts
+wrapResult []        r = []
+wrapResult [t]       r = [r]
+wrapResult (_::_::_) r = r
+
+public export
+0 API : All Serve ts => (vs : HList ts) -> Type
+API vs = Fun (AllInTypes vs) (Handler (ResultType $ AllOutTypes vs))
 
 getIns :
      {auto all : All Serve ts}
@@ -68,14 +84,9 @@ getIns @{_::_} (v::vs) @{_::_} req = Prelude.do
   rem <- getIns vs req
   pure (rs ++ rem)
 
-applyAPI :
-     HList ts
-  -> (0 os : List Type)
-  -> {auto 0 prf : Sing os}
-  -> Fun ts (Handler (GetSing os))
-  -> Handler (HList os)
-applyAPI []        os r = map (wrapSing os) r
-applyAPI (v :: vs) os f = applyAPI vs os (f v)
+applyAPI : HList ts -> Fun ts (Handler o) -> Handler o
+applyAPI []        r = r
+applyAPI (v :: vs) f = applyAPI vs (f v)
 
 putOuts :
      {auto all : All Serve ts}
@@ -99,7 +110,6 @@ data Server : APIs -> Type where
     -> {0 as       : APIs}
     -> {hl         : HList ts}
     -> {auto all   : All Serve ts}
-    -> {auto 0 prf : Sing (AllOutTypes hl)}
     -> {auto con   : HList (Constraints hl)}
     -> API hl
     -> Server as
@@ -116,15 +126,14 @@ canServe @{_::_} (v::vs) @{_::_} req = canHandle v req && canServe vs req
 serve1 :
      {auto all   : All Serve ts}
   -> (api        : HList ts)
-  -> {auto 0 prf : Sing (AllOutTypes api)}
   -> {auto con   : HList (Constraints api)}
   -> API api
   -> Request
   -> Handler Response
 serve1 api f req = Prelude.do
   ins  <- getIns api req
-  outs <- applyAPI ins (AllOutTypes api) f
-  putOuts api outs req empty
+  outs <- applyAPI ins f
+  putOuts api (wrapResult (allOuts api) outs) req empty
 
 export
 serveAll : (0 apis   : APIs) -> Server apis -> Request -> Handler Response
@@ -171,10 +180,16 @@ checkResponseTypes a r =
 
 public export
 Serve ReqMethod where
-  InTypes    m = []
-  OutTypes   m = [MethodResult m]
-  Constraint m = All (EncodeVia (MethodResult m)) m.formats
-  outs     _ = %search
+  InTypes m = []
+
+  OutTypes m = MethodResults m
+
+  Constraint (M _ _ _ Nothing0)   = ()
+  Constraint (M _ _ fs $ Just0 t) = All (EncodeVia t) fs
+
+  outs (M _ _ _ Nothing0)  = []
+  outs (M _ _ _ $ Just0 t) = [t]
+
   canHandle (M m _ _ _) r = m == r.method
   fromRequest m r = pure []
   adjResponse (M _ _ _ Nothing0)  _   req resp = pure resp

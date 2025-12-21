@@ -34,9 +34,9 @@ record ReqMethod where
   result  : Maybe0 Type
 
 public export
-0 MethodResult : ReqMethod -> Type
-MethodResult (M _ _ _ $ Just0 t)  = t
-MethodResult (M _ _ _ $ Nothing0) = ()
+0 MethodResults : ReqMethod -> List Type
+MethodResults (M _ _ _ $ Just0 t)  = [t]
+MethodResults (M _ _ _ $ Nothing0) = []
 
 public export
 Get : (0 formats : List Type) -> (0 val : Type) -> ReqMethod
@@ -135,20 +135,10 @@ splitHList (t :: ts) (v::vs) =
   let (xs,ys) := splitHList ts vs
    in (v::xs,ys)
 
-||| Proof that a list hold exactly one value.
 public export
-data Sing : List a -> Type where
-  IsSing : Sing [v]
-
-||| Extracts the sole value from a singleton list.
-public export
-GetSing : (as : List a) -> Sing as => a
-GetSing [v] = v
-
-||| Wraps a single value in a heterogeneous list of one value.
-public export
-wrapSing : (0 ts : List Type) -> (0 prf : Sing ts) => GetSing ts -> HList ts
-wrapSing [t] @{IsSing} x = [x]
+(++) : TList xs -> TList ys -> TList (xs++ys)
+(++) (t::ts) tys = t :: (ts ++ tys)
+(++) []      tys = tys
 
 namespace APIs
 
