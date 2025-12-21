@@ -55,6 +55,10 @@ Accept : ByteString
 Accept = "ACCEPT"
 
 public export
+Authorization : ByteString
+Authorization = "AUTHORIZATION"
+
+public export
 Content_Size : ByteString
 Content_Size = "CONTENT-SIZE"
 
