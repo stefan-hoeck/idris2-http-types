@@ -9,6 +9,7 @@ import public HTTP.API.Content
 import public HTTP.API.Endpoints
 import public HTTP.API.Decode
 import public HTTP.API.Encode
+import public HTTP.API.Env
 import public HTTP.API.Header
 import public HTTP.API.Method
 import public HTTP.API.Path

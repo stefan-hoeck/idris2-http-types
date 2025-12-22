@@ -13,6 +13,7 @@ modules = HTTP.API
         , HTTP.API.Endpoints
         , HTTP.API.Decode
         , HTTP.API.Encode
+        , HTTP.API.Env
         , HTTP.API.Header
         , HTTP.API.Method
         , HTTP.API.Path

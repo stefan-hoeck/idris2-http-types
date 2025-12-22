@@ -2,6 +2,7 @@ module HTTP.API.Server
 
 import public HTTP.API
 import public HTTP.API.Server.Content
+import public HTTP.API.Server.Env
 import public HTTP.API.Server.Header
 import public HTTP.API.Server.Interface
 import public HTTP.API.Server.Method
