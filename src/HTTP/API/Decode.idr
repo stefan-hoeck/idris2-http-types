@@ -57,9 +57,13 @@ detailString : String -> String
 detailString "" = ""
 detailString s  = " \{s}."
 
+valueString : String -> String
+valueString "" = ""
+valueString s  = ": '\{s}'"
+
 export
 Interpolation DecodeErr where
-  interpolate (ReadErr t s d) = "Invalid \{t}: '\{s}'.\{detailString d}"
+  interpolate (ReadErr t s d) = "Invalid \{t}\{valueString s}.\{detailString d}"
   interpolate (ContentErr t d) = "Invalid \{t}."
   interpolate (Msg msg) = msg
 
