@@ -243,3 +243,28 @@ Decode Int32 where
 export
 Decode Int64 where
   decode = bounded Integer "integer" (-0x8000_0000_0000_0000) 0x7fff_ffff_ffff_ffff
+
+export
+Decode Double where
+  decode bs =
+    case runBytes json bs of
+      Right (JDouble x)  => Right x
+      Right (JInteger x) => Right $ cast x
+      _                  => Left $ readErr "floating point number" bs
+
+--------------------------------------------------------------------------------
+-- Decode Testing
+--------------------------------------------------------------------------------
+
+||| Testing facility for value decoding.
+|||
+||| Example usage at the REPL:
+|||
+||| ```
+||| :exec decodeTest Double "12.112"
+||| ```
+export
+decodeTest : (0 a : Type) -> Decode a => Show a => String -> IO ()
+decodeTest a =
+  either (putStrLn . interpolate) printLn . decodeAs a . fromString
+
