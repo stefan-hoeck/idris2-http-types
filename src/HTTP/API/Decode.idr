@@ -49,6 +49,12 @@ setType t (ReadErr _ v d)  = ReadErr t v d
 setType t (ContentErr _ d) = ContentErr t d
 setType t (Msg m)          = Msg m
 
+||| Adjusts the `type` field of a decode error.
+export
+setValue : String -> DecodeErr -> DecodeErr
+setValue v (ReadErr t _ d)  = ReadErr t v d
+setValue _ err              = err
+
 --------------------------------------------------------------------------------
 -- Pretty printing Decode Errors
 --------------------------------------------------------------------------------
