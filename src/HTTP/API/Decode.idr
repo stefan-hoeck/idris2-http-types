@@ -19,7 +19,7 @@ data DecodeErr : Type where
   ||| @type    : String description of the type we tried to read
   ||| @value   : The string from which the value should be read
   ||| @details : Additional information about why reading the value failed.
-  ReadErr    : (type, value : String) -> (details : Maybe String) -> DecodeErr
+  ReadErr    : (type, value : String) -> (details : String) -> DecodeErr
 
   ||| A `ContentErr` is - in general - a more technical error that happend
   ||| when parsing the body of a message. The `details` field typically
@@ -35,7 +35,7 @@ data DecodeErr : Type where
 ||| Utility constructor for `ReadErr`.
 export %inline
 readErr : (type : String) -> (value : ByteString) -> DecodeErr
-readErr type value = ReadErr type (toString value) Nothing
+readErr type value = ReadErr type (toString value) ""
 
 ||| Utility constructor for `ContentErr`.
 export %inline
@@ -49,16 +49,27 @@ setType t (ReadErr _ v d)  = ReadErr t v d
 setType t (ContentErr _ d) = ContentErr t d
 setType t (Msg m)          = Msg m
 
+||| Adjusts the `type` field of a decode error.
+export
+setValue : String -> DecodeErr -> DecodeErr
+setValue v (ReadErr t _ d)  = ReadErr t v d
+setValue _ err              = err
+
 --------------------------------------------------------------------------------
 -- Pretty printing Decode Errors
 --------------------------------------------------------------------------------
 
-detailString : Maybe String -> String
-detailString = maybe "" (\x => " \{x}.")
+detailString : String -> String
+detailString "" = ""
+detailString s  = " \{s}."
+
+valueString : String -> String
+valueString "" = ""
+valueString s  = ": '\{s}'"
 
 export
 Interpolation DecodeErr where
-  interpolate (ReadErr t s d) = "Invalid \{t}: '\{s}'.\{detailString d}"
+  interpolate (ReadErr t s d) = "Invalid \{t}\{valueString s}.\{detailString d}"
   interpolate (ContentErr t d) = "Invalid \{t}."
   interpolate (Msg msg) = msg
 
@@ -161,7 +172,7 @@ refinedEither :
   -> Either DecodeErr b
 refinedEither t f bs = Prelude.do
   v <- mapFst (setType t) $ decodeAs a bs
-  mapFst (ReadErr t (toString bs) . Just) (f v)
+  mapFst (ReadErr t (toString bs)) (f v)
 
 export
 refined :
@@ -174,7 +185,7 @@ refined :
 refined t details f bs = Prelude.do
   v <- mapFst (setType t) $ decodeAs a bs
   case f v of
-    Nothing => Left $ ReadErr t (toString bs) $ Just details
+    Nothing => Left $ ReadErr t (toString bs) details
     Just x  => Right x
 
 export
