@@ -4,6 +4,7 @@ import public FS.Posix
 import public HTTP.RequestErr
 import public IO.Async.Loop.Posix
 import public IO.Async.Posix
+import public IO.Async.Service
 
 %default total
 
@@ -36,6 +37,11 @@ HTTPPull = Pull HTTPProg
 public export
 0 HTTPStream : (es : List Type) -> (o : Type) -> Type
 HTTPStream = Stream HTTPProg
+
+||| An asynchronous service use to process HTTP requests.
+public export
+0 HTTPService : (req : Type) -> (resp : req -> Type) -> Type
+HTTPService = Service Poll [RequestErr]
 
 ||| A handler for error type `e`.
 public export

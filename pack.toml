@@ -7,3 +7,9 @@ ipkg   = "http-types.ipkg"
 type   = "local"
 path   = "http-server-api"
 ipkg   = "http-server-api.ipkg"
+
+[custom.all.async]
+type   = "git"
+url    = "https://github.com/stefan-hoeck/idris2-async.git"
+commit = "latest:main"
+ipkg   = "async.ipkg"
