@@ -55,6 +55,13 @@ setValue : String -> DecodeErr -> DecodeErr
 setValue v (ReadErr t _ d)  = ReadErr t v d
 setValue _ err              = err
 
+||| Adjusts the `message` or `details` field of a decode error.
+export
+modMsg : (String -> String) -> DecodeErr -> DecodeErr
+modMsg f (ReadErr t v d)  = ReadErr t v (f d)
+modMsg f (ContentErr t d) = ContentErr t (f d)
+modMsg f (Msg m)          = Msg (f m)
+
 --------------------------------------------------------------------------------
 -- Pretty printing Decode Errors
 --------------------------------------------------------------------------------
