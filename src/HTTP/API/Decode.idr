@@ -9,41 +9,70 @@ import JSON.Simple.Derive
 %default total
 %language ElabReflection
 
+||| Error type that occurs when decoding a value or other piece of
+||| information.
 public export
 data DecodeErr : Type where
-  DE  : (type, value, details : Maybe String) -> DecodeErr
-  Msg : (message : String) -> DecodeErr
+  ||| A `ReadErr` typically occurs when reading a single value
+  ||| from a string or bytestring.
+  |||
+  ||| @type    : String description of the type we tried to read
+  ||| @value   : The string from which the value should be read
+  ||| @details : Additional information about why reading the value failed.
+  ReadErr    : (type, value : String) -> (details : Maybe String) -> DecodeErr
+
+  ||| A `ContentErr` is - in general - a more technical error that happend
+  ||| when parsing the body of a message. The `details` field typically
+  ||| holds the detailed description from the parser about what went
+  ||| actually wrong.
+  ContentErr : (type : String) -> (details : String) -> DecodeErr
+
+  ||| An arbitrary custom error message.
+  Msg        : (message : String) -> DecodeErr
 
 %runElab derive "DecodeErr" [Show,Eq,FromJSON,ToJSON]
 
+||| Utility constructor for `ReadErr`.
+export %inline
+readErr : (type : String) -> (value : ByteString) -> DecodeErr
+readErr type value = ReadErr type (toString value) Nothing
+
+||| Utility constructor for `ContentErr`.
+export %inline
+contentErr : (type : String) -> Interpolation a => a -> DecodeErr
+contentErr type = ContentErr type . interpolate
+
+||| Adjusts the `type` field of a decode error.
 export
-invalidVal : (type, value : String) -> DecodeErr
-invalidVal type value = DE (Just type) (Just value) Nothing
+setType : String -> DecodeErr -> DecodeErr
+setType t (ReadErr _ v d)  = ReadErr t v d
+setType t (ContentErr _ d) = ContentErr t d
+setType t (Msg m)          = Msg m
 
-export
-invalidBody : (type : String) -> Interpolation a => a -> DecodeErr
-invalidBody type = DE (Just type) Nothing . Just . interpolate
+--------------------------------------------------------------------------------
+-- Pretty printing Decode Errors
+--------------------------------------------------------------------------------
 
-tpeString : Maybe String -> String
-tpeString = fromMaybe "value"
-
-valString : Maybe String -> String
-valString = maybe "" (\x => ": \{x}")
+detailString : Maybe String -> String
+detailString = maybe "" (\x => " \{x}.")
 
 export
 Interpolation DecodeErr where
-  interpolate (DE t s _) = "Invalid \{tpeString t}\{valString s}."
-  interpolate (Msg msg)  = msg
+  interpolate (ReadErr t s d) = "Invalid \{t}: '\{s}'.\{detailString d}"
+  interpolate (ContentErr t d) = "Invalid \{t}."
+  interpolate (Msg msg) = msg
 
 --------------------------------------------------------------------------------
--- Error Utilities
+-- Converting to Request Error
 --------------------------------------------------------------------------------
+
+dets : DecodeErr -> String
+dets (ContentErr _ ds) = ds
+dets _                 = ""
 
 export
 decodeErr : Status -> DecodeErr -> RequestErr
-decodeErr s de@(DE _ _ $ Just d) =
-  {message := "\{de}", details := d} (requestErr s)
-decodeErr s de = {message := "\{de}"} (requestErr s)
+decodeErr s de = {message := "\{de}", details := dets de} (requestErr s)
 
 --------------------------------------------------------------------------------
 -- Decode Interface
@@ -59,53 +88,6 @@ interface Decode (0 a : Type) where
 public export %inline
 decodeAs : (0 a : Type) -> Decode a => ByteString -> Either DecodeErr a
 decodeAs _ = decode
-
-export %inline
-Decode ByteString where decode = Right
-
-export %inline
-Decode String where decode = Right . toString
-
-export
-Decode Nat where
-  decode (BS 0 _) = Left $ invalidVal "natural number" ""
-  decode bs =
-    if all isDigit bs
-       then Right (cast $ decimal bs)
-       else Left $ invalidVal "natural number" (toString bs)
-
-export
-Decode Bits8 where decode = map cast . decodeAs Nat
-
-export
-Decode Bits16 where decode = map cast . decodeAs Nat
-
-export
-Decode Bits32 where decode = map cast . decodeAs Nat
-
-export
-Decode Bits64 where decode = map cast . decodeAs Nat
-
-export
-Decode Integer where
-  decode (BS 0 _) = Left (invalidVal "integer" "")
-  decode bs@(BS (S k) bv) =
-    case head bv of
-      45 => map (negate . cast) (decodeAs Nat (BS k $ tail bv))
-      43 => map cast (decodeAs Nat (BS k $ tail bv))
-      _  => map cast $ decodeAs Nat bs
-
-export
-Decode Int8 where decode = map cast . decodeAs Integer
-
-export
-Decode Int16 where decode = map cast . decodeAs Integer
-
-export
-Decode Int32 where decode = map cast . decodeAs Integer
-
-export
-Decode Int64 where decode = map cast . decodeAs Integer
 
 ||| An interface for decoding values by reading a prefix
 ||| of a list of bytestrings such as a path in a URL.
@@ -162,6 +144,127 @@ decodeVia bs = fromBytes @{d} bs >>= decodeFrom
 
 export
 FromJSON a => DecodeVia JSON a where
-  fromBytes  = mapFst (invalidBody "JSON value") . parseBytes json Virtual
-  decodeFrom = mapFst (invalidBody "JSON value" . JErr) . fromJSON
+  fromBytes  = mapFst (contentErr "JSON value") . parseBytes json Virtual
+  decodeFrom = mapFst (contentErr "JSON value" . JErr) . fromJSON
   mediaType  = "application/json"
+
+--------------------------------------------------------------------------------
+-- Implementations
+--------------------------------------------------------------------------------
+
+export
+refinedEither :
+     {auto r : Decode a}
+  -> (type : String)
+  -> (a -> Either String b)
+  -> ByteString
+  -> Either DecodeErr b
+refinedEither t f bs = Prelude.do
+  v <- mapFst (setType t) $ decodeAs a bs
+  mapFst (ReadErr t (toString bs) . Just) (f v)
+
+export
+refined :
+     {auto r  : Decode a}
+  -> (type    : String)
+  -> (details : Lazy String)
+  -> (a -> Maybe b)
+  -> ByteString
+  -> Either DecodeErr b
+refined t details f bs = Prelude.do
+  v <- mapFst (setType t) $ decodeAs a bs
+  case f v of
+    Nothing => Left $ ReadErr t (toString bs) $ Just details
+    Just x  => Right x
+
+export
+bounded :
+     (0 a    : Type)
+  -> {auto r : Decode a}
+  -> {auto o : Ord a}
+  -> {auto c : Cast a b}
+  -> (type    : String)
+  -> (min,max : a)
+  -> ByteString
+  -> Either DecodeErr b
+bounded a t min max = refined t "Value out of bounds" $ \v =>
+  if (min <= v && v <= max) then Just (cast v) else Nothing
+
+export %inline
+Decode ByteString where decode = Right
+
+export %inline
+Decode String where decode = Right . toString
+
+export
+Decode Nat where
+  decode (BS 0 _) = Left $ readErr "natural number" empty
+  decode bs =
+    if all isDigit bs
+       then Right (cast $ decimal bs)
+       else Left $ readErr "natural number" bs
+
+export
+Decode Integer where
+  decode (BS 0 _) = Left $ readErr "integer" empty
+  decode bs@(BS (S k) bv) =
+    mapFst (setType "integer") $ case head bv of
+      45 => map (negate . cast) (decodeAs Nat (BS k $ tail bv))
+      _  => map cast $ decodeAs Nat bs
+
+export
+Decode Bits8 where
+  decode = bounded Integer "unsigned integer" 0 0xff
+
+export
+Decode Bits16 where
+  decode = bounded Integer "unsigned integer" 0 0xffff
+
+export
+Decode Bits32 where
+  decode = bounded Integer "unsigned integer" 0 0xffff_ffff
+
+export
+Decode Bits64 where
+  decode = bounded Integer "unsigned integer" 0 0xffff_ffff_ffff_ffff
+
+export
+Decode Int8 where
+  decode = bounded Integer "integer" (-0x80) 0x7f
+
+export
+Decode Int16 where
+  decode = bounded Integer "integer" (-0x8000) 0x7fff
+
+export
+Decode Int32 where
+  decode = bounded Integer "integer" (-0x8000_0000) 0x7fff_ffff
+
+export
+Decode Int64 where
+  decode = bounded Integer "integer" (-0x8000_0000_0000_0000) 0x7fff_ffff_ffff_ffff
+
+export
+Decode Double where
+  decode bs =
+    case runBytes json bs of
+      Right (JDouble x)  => Right x
+      Right (JInteger x) => Right $ cast x
+      _                  => Left $ readErr "floating point number" bs
+
+--------------------------------------------------------------------------------
+-- Decode Testing
+--------------------------------------------------------------------------------
+
+||| Testing facility for value decoding.
+|||
+||| Example usage at the REPL:
+|||
+||| ```
+||| :exec decodeTest Double "12.112"
+||| ```
+export
+decodeTest : (0 a : Type) -> Decode a => Show a => String -> IO ()
+decodeTest a =
+  either (putStrLn . interpolate) printLn . decodeAs a . fromString
+
