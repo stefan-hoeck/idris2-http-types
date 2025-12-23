@@ -77,3 +77,11 @@ internalServerError500 = MkStatus 500 "Internal Server Error"
 export
 notImplemented501 : Status
 notImplemented501 = MkStatus 501 "Not Implemented"
+
+export
+insufficientStorage507 : Status
+insufficientStorage507 = MkStatus 507 "Insufficient Storage"
+
+export
+networkAuthenticationRequired511 : Status
+networkAuthenticationRequired511 = MkStatus 511 "Network Authentication Required"
