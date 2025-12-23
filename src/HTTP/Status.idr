@@ -59,6 +59,10 @@ notAcceptable406 : Status
 notAcceptable406 = MkStatus 406 "Not Acceptable"
 
 export
+conflict409 : Status
+conflict409 = MkStatus 409 "Conflict"
+
+export
 contentTooLarge413 : Status
 contentTooLarge413 = MkStatus 413 "Content Too Large"
 
