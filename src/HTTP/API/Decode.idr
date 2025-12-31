@@ -1,8 +1,10 @@
 module HTTP.API.Decode
 
+import Data.List.Quantifiers as L
 import Derive.Prelude
 import HTTP.RequestErr
 import HTTP.Status
+import HTTP.URI
 import JSON.Simple
 import JSON.Simple.Derive
 
@@ -145,6 +147,58 @@ Decode a => DecodeMany (List a) where
   simulateDecode bs = Just []
   decodeMany bs = map (<>> []) <$> decodeAll [<] %search bs
 
+simulateHL :
+     L.All.All (DecodeMany . f) ts
+  -> List ByteString
+  -> Maybe (List ByteString)
+simulateHL []       xs = Just xs
+simulateHL (x :: y) xs =
+  case simulateDecode @{x} xs of
+    Nothing  => Nothing
+    Just xs2 => simulateHL y xs2
+
+decodeHL :
+     L.All.All (DecodeMany . f) ts
+  -> List ByteString
+  -> Either DecodeErr (List ByteString, L.All.All f ts)
+decodeHL []       xs = Right (xs, [])
+decodeHL (x :: y) xs =
+  case decodeMany @{x} xs of
+    Left err       => Left err
+    Right (xs2, v) => map (v::) <$> decodeHL y xs2
+
+export %inline
+(all : L.All.All (DecodeMany . f) ts) => DecodeMany (L.All.All f ts) where
+  simulateDecode = simulateHL all
+  decodeMany = decodeHL all
+
+simulateN :
+     DecodeMany t
+  -> (n : Nat)
+  -> List ByteString
+  -> Maybe (List ByteString)
+simulateN x 0     xs = Just xs
+simulateN x (S n) xs =
+  case simulateDecode @{x} xs of
+    Nothing  => Nothing
+    Just xs2 => simulateN x n xs2
+
+decodeN :
+     DecodeMany t
+  -> (n : Nat)
+  -> List ByteString
+  -> Either DecodeErr (List ByteString, Vect n t)
+decodeN x 0     xs = Right (xs, [])
+decodeN x (S n) xs =
+  case decodeMany @{x} xs of
+    Left err       => Left err
+    Right (xs2, v) => map (v::) <$> decodeN x n xs2
+
+export %inline
+{n : Nat} -> (x : DecodeMany a) => DecodeMany (Vect n a) where
+  simulateDecode = simulateN x n
+  decodeMany = decodeN x n
+
 --------------------------------------------------------------------------------
 -- DecodeVia
 --------------------------------------------------------------------------------
@@ -286,3 +340,19 @@ decodeTest : (0 a : Type) -> Decode a => Show a => String -> IO ()
 decodeTest a =
   either (putStrLn . interpolate) printLn . decodeAs a . fromString
 
+||| Testing facility for path decoding.
+|||
+||| Example usage at the REPL:
+|||
+||| ```
+||| :exec decodeTest (Vect 3 Nat) "https://www.hock.com/1/2/3?foo=bar"
+||| ```
+export
+decodeManyTest : (0 a : Type) -> DecodeMany a => Show a => String -> IO ()
+decodeManyTest a s =
+  case parseURI Virtual (fromString s) of
+    Left err => putStrLn "\{err}"
+    Right u  => case decodeMany {a} u.path of
+      Right ([],v) => printLn v
+      Right (b::bs,v) => putStrLn "Only consumed up to \{b}: \{show v}"
+      Left x => putStrLn "\{x}"
