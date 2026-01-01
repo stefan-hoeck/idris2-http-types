@@ -9,6 +9,7 @@ module HTTP.API.Path
 public export
 data Part : Type where
   PStr       : String -> Part
+  PTill      : String -> Part
   Capture    : (0 t : Type) -> Part
 
 public export
@@ -19,6 +20,7 @@ public export
 0 PartsTypes : List Part -> List Type
 PartsTypes []                = []
 PartsTypes (PStr _    :: xs) = PartsTypes xs
+PartsTypes (PTill _   :: xs) = PartsTypes xs
 PartsTypes (Capture t :: xs) = t :: PartsTypes xs
 
 ||| Describes a pattern for matching and extracting
