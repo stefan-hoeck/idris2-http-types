@@ -57,16 +57,24 @@ toURI : Part -> URI
 toURI (P sch auth abs segs ques frag) =
   MkURI sch auth abs (segs <>> []) (maybe empty toQueries ques) frag
 
+pathLines : URI -> List ByteString
+pathLines (MkURI s a abs p q f) =
+     (if abs || not (null a || null p) then ["/"] else [])
+  ++ intersperse "/" (map (uriEscape (not . ispchar)) p)
+
+export %inline
+encodePath : URI -> ByteString
+encodePath = fastConcat . pathLines
+
 ||| Properly escapes characters in a URL if necessary and
 ||| combines the different parts in the URI.
 export
 encodeURI : URI -> ByteString
-encodeURI (MkURI s a abs p q f) =
+encodeURI u@(MkURI s a _ _ q f) =
   fastConcat $
        maybe [] (::[":"]) s
     ++ maybe [] (\x => ["//", uriEscape (not . isAuthByte) x]) a
-    ++ (if abs || not (null a || null p) then ["/"] else [])
-    ++ intersperse "/" (map (uriEscape (not . ispchar)) p)
+    ++ pathLines u
     ++ encodeQueries q
     ++ maybe [] (\x => ["#", uriEscape (not . isFragmentByte) x]) f
 
