@@ -2,6 +2,7 @@ module HTTP.Prog
 
 import public FS.Posix
 import public HTTP.RequestErr
+import public IO.Async.Logging
 import public IO.Async.Loop.Posix
 import public IO.Async.Posix
 import public IO.Async.Service
@@ -16,6 +17,11 @@ import public IO.Async.Service
 public export
 0 HTTPProg : (es : List Type) -> (a : Type) -> Type
 HTTPProg = Async Poll
+
+||| Logger used in a HTTP server
+public export
+0 HTTPLogger : Type
+HTTPLogger = Logger Poll
 
 ||| A `Pull` running in the `Async` monad and requiring
 ||| polling capabilities.
