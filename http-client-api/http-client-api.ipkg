@@ -10,6 +10,7 @@ depends    = http-types
 
 modules = HTTP.API.Client
         , HTTP.API.Client.Content
+        , HTTP.API.Client.FFI
         , HTTP.API.Client.Header
         , HTTP.API.Client.Interface
         , HTTP.API.Client.Method

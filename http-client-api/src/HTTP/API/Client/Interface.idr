@@ -7,3 +7,4 @@ import public HTTP.API.Client.Request
 
 public export
 interface Receive (0 a : Type) where
+
