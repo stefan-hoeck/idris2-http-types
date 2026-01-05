@@ -4,8 +4,10 @@ import Data.Buffer
 import Data.ByteString
 import Data.SortedMap as SM
 import HTTP.MimeType
-import Text.ILex.Util
+import HTTP.Header.Parser
+import Text.ILex
 
+%hide Data.Linear.(.)
 %default total
 
 export
@@ -66,6 +68,10 @@ public export
 Content_Type : ByteString
 Content_Type = "CONTENT-TYPE"
 
+public export
+Content_Disposition : ByteString
+Content_Disposition = "CONTENT-DISPOSITION"
+
 ||| Reads the `Accept` header and converts it to a list of media types.
 export
 accept : Headers -> List MimeType
@@ -97,3 +103,20 @@ hasContentType hs s = Just s == map type (contentType hs)
 export
 contentSize : Headers -> Nat
 contentSize = maybe 0 (cast . decimal) . lookupUpperCaseHeader Content_Size
+
+export %inline
+parseHeaders : Origin -> ByteString -> Either (ParseError Void) Headers
+parseHeaders o = map MkHeaders . parseBytes header o
+
+--------------------------------------------------------------------------------
+-- Test Parsing
+--------------------------------------------------------------------------------
+
+export
+testParseHeaders : ByteString -> IO ()
+testParseHeaders =
+  either (putStrLn . interpolate) printPairs . parseHeaders Virtual
+
+  where
+    printPairs : Headers -> IO ()
+    printPairs hs = for_ (kvList hs) $ \(n,v) => putStrLn "\{n}: \{v}"

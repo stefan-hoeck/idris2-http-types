@@ -85,3 +85,12 @@ parseURI o = map toURI . parseBytes uri o
 export %inline
 Interpolation URI where
   interpolate = toString . encodeURI
+
+--------------------------------------------------------------------------------
+-- Test Parsing
+--------------------------------------------------------------------------------
+
+export
+testParseURI : ByteString -> IO ()
+testParseURI =
+  either (putStrLn . interpolate) (putStrLn . interpolate) . parseURI Virtual
