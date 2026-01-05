@@ -17,8 +17,8 @@ data FDPart : Type where
 public export
 data RequestBody : Type where
   None  : RequestBody
-  Bytes : ByteString -> RequestBody
-  Str   : String -> RequestBody
+  Bytes : (mediatype : String) -> ByteString -> RequestBody
+  Str   : (mediatype : String) -> String -> RequestBody
   FD    : List (String,FDPart) -> RequestBody
 
 public export
@@ -29,7 +29,25 @@ record HTTPRequest where
   headers : Headers
   body    : RequestBody
 
+export %inline
+adjURI : (URI -> URI) -> HTTPRequest -> HTTPRequest
+adjURI f = {uri $= f}
+
 export
 emptyRequest : HTTPRequest
 emptyRequest =
   R GET (MkURI Nothing Nothing False [] [] Nothing) emptyHeaders None
+
+--------------------------------------------------------------------------------
+-- Interface
+--------------------------------------------------------------------------------
+
+public export
+interface RequestEncode (0 from,to : Type) where
+  reqEncodeAs  : from -> to
+  toBody       : to -> RequestBody
+
+export %inline
+(e : EncodeVia f t) => RequestEncode f t where
+  reqEncodeAs  = encodeAs
+  toBody       = Bytes (mediaType @{e}) . fastConcat . toBytes @{e}
