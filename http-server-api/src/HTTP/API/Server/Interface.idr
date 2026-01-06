@@ -70,40 +70,19 @@ public export
 Constraints @{[]}   []      = []
 Constraints @{_::_} (v::vs) = Constraint v :: Constraints vs
 
-||| Computes the list values extracted from the HTTP request
+||| Computes the list of types of values extracted from the HTTP request
 ||| by a single endpoint description.
 public export
 0 AllInTypes : All Serve ts => (endpoint : HList ts) -> List Type
 AllInTypes @{[]}   []      = []
 AllInTypes @{_::_} (v::vs) = InTypes v ++ AllInTypes vs
 
-||| Computes the list values used to adjust the HTTP response
+||| Computes the list of type of values used to adjust the HTTP response
 ||| by a single endpoint description.
 public export
 0 AllOutTypes : All Serve ts => (endpoint : HList ts) -> List Type
 AllOutTypes @{[]}   []      = []
 AllOutTypes @{_::_} (v::vs) = OutTypes v ++ AllOutTypes vs
-
-||| Computes a function type from a list of argument types and a result type.
-|||
-||| This is used to compute the function type of handler of a single
-||| server endpoint.
-public export
-0 Fun : List Type -> Type -> Type
-Fun []        r = r
-Fun (t :: ts) r = t -> Fun ts r
-
-||| Computes the result type the handler of a server endpoint.
-|||
-||| For convenience in downstream code, we only return a heterogeneous list
-||| in case several values are required to make adjustments to the HTTP
-||| response. In case of no value or a single value being required, we return
-||| `Unit` or the a single value, respectively.
-public export
-0 ResultType : List Type -> Type
-ResultType []  = ()
-ResultType [t] = t
-ResultType ts  = HList ts
 
 ||| Computes a `TList` representation of the outtypes of an entpoint.
 public export
@@ -120,16 +99,6 @@ EndpointHandler vs =
 --------------------------------------------------------------------------------
 -- Server Implementation
 --------------------------------------------------------------------------------
-
-applyHList : HList ts -> Fun ts (Handler o) -> Handler o
-applyHList []        r = r
-applyHList (v :: vs) f = applyHList vs (f v)
-
--- converts a `ResultType` to a heterogeneous list
-wrapResult : TList ts -> ResultType ts -> HList ts
-wrapResult []        r = []
-wrapResult [t]       r = [r]
-wrapResult (_::_::_) r = r
 
 ||| Returns `True` if the given endpoint can serve the current
 ||| HTTP request
