@@ -2,7 +2,7 @@ module HTTP.URI
 
 import Data.Buffer
 import Derive.Prelude
-import HTTP.URI.Parser
+import HTTP.Parser.URI
 import Text.ILex
 
 %hide Data.Linear.(.)

@@ -4,7 +4,7 @@ import Data.Buffer
 import Data.ByteString
 import Data.SortedMap as SM
 import HTTP.MimeType
-import HTTP.Header.Parser
+import HTTP.Parser.Header
 import Text.ILex
 
 %hide Data.Linear.(.)

@@ -15,16 +15,16 @@ record FDPart where
   name    : ByteString
   content : ByteString
 
-public export
-0 FormData : Type
-FormData = SortedMap ByteString FDPart
-
-crlf : ByteString
-crlf = "\r\n"
-
-crlf2 : ByteString
-crlf2 = "\r\n\r\n"
-
+-- public export
+-- 0 FormData : Type
+-- FormData = SortedMap ByteString FDPart
+--
+-- crlf : ByteString
+-- crlf = "\r\n"
+--
+-- crlf2 : ByteString
+-- crlf2 = "\r\n\r\n"
+--
 -- pair : ByteString -> (String,String)
 -- pair bs =
 --   let (x,y) := ByteString.break (58 ==) bs
@@ -43,12 +43,12 @@ crlf2 = "\r\n\r\n"
 --              then {json := drop 4 y} p
 --              else {bytes := drop 4 y} p
 --         Nothing => p
-
-isEnd : ByteString -> Bool
-isEnd bs = "--" `isPrefixOf` bs
-
-export
-multipart : (sep : ByteString) -> ByteString -> FormData
-multipart sep =
-  let sepBS := "--" <+> sep
-   in foldl part empty . takeWhile (not . isEnd) . splitAtSubstring sepBS
+--
+-- isEnd : ByteString -> Bool
+-- isEnd bs = "--" `isPrefixOf` bs
+--
+-- export
+-- multipart : (sep : ByteString) -> ByteString -> FormData
+-- multipart sep =
+--   let sepBS := "--" <+> sep
+--    in foldl part empty . takeWhile (not . isEnd) . splitAtSubstring sepBS
