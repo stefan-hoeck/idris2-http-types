@@ -386,12 +386,8 @@ header =
   ["FName", "FEq", "FVal"]
 
 public export
-data Encoding = ASCII | ISO_8859_1 | UTF_8
-
-public export
 record HFValue where
   constructor HFP
-  encoding : Encoding
   language : Maybe ByteString
   value    : String
 
@@ -399,9 +395,8 @@ public export
 record FPart where
   constructor FP
   name   : ByteString
-  enc    : Encoding
   lang   : Maybe ByteString
   params : SortedMap ByteString HFValue
 
 init : FPart
-init = FP "" ASCII Nothing empty
+init = FP "" Nothing empty
