@@ -25,7 +25,7 @@ empty : Response
 empty = RP emptyHeaders []
 
 export
-addHeader :  ByteString -> ByteString  -> Response -> Response
+addHeader :  String -> ByteString  -> Response -> Response
 addHeader x y = {headers $= insertHeader x y}
 
 export
@@ -40,11 +40,11 @@ responseBytes : Response -> List ByteString
 responseBytes (RP hs bs) =
   case kvList hs of
     [] => crlf :: crlf :: bs
-    ps => (ps >>= \(h,v) => [h,":",v,crlf]) ++ crlf :: bs
+    ps => (ps >>= \(h,v) => [fromString h,":",v,crlf]) ++ crlf :: bs
 
 export
 setContentType : EncodeVia f t -> Response -> Response
-setContentType e = addHeader "Content-Type" (fromString $ mediaType @{e})
+setContentType e = addHeader Content_Type (encodeMediaType $ mediaType @{e})
 
 export
 encodeBody :

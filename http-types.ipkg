@@ -22,8 +22,8 @@ modules = HTTP.API
 
         , HTTP.FormData
         , HTTP.Header
+        , HTTP.Header.Types
         , HTTP.Method
-        , HTTP.MimeType
 
         , HTTP.Parser.Header
         , HTTP.Parser.URI

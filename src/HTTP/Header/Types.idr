@@ -1,5 +1,6 @@
 module HTTP.Header.Types
 
+import Data.ByteString
 import Data.SortedMap
 import Derive.Prelude
 
@@ -36,25 +37,33 @@ record MediaRange where
 public export
 record MediaType where
   constructor MT
-  type   : String
-  subtye : String
-  params : Parameters
+  type    : String
+  subtype : String
+
+export
+encodeMediaType : MediaType -> ByteString
+encodeMediaType (MT t s) = fromString "\{t}/\{s}"
 
 %runElab derive "MediaType" [Show,Eq]
+
+public export
+record ContentType where
+  constructor CT
+  type   : MediaType
+  params : Parameters
+
+%runElab derive "ContentType" [Show,Eq]
+
+export
+accepts : MediaDesc -> MediaType -> Bool
+accepts MDAny             _ = True
+accepts (MDStar type)     t = type == t.type
+accepts (MD type subtype) t = type == t.type && subtype == t.subtype
 
 public export
 0 MediaRanges : Type
 MediaRanges = List MediaRange
 
 public export
-data HeaderVal : Type where
-  Accept        : MediaRanges -> HeaderVal
-  ContentLength : Nat -> HeaderVal
-  ContentType   : MediaType -> HeaderVal
-  Other         : String -> HeaderVal
-
-%runElab derive "HeaderVal" [Show,Eq]
-
-public export
 0 HeaderMap : Type
-HeaderMap = SortedMap String HeaderVal
+HeaderMap = SortedMap String ByteString
