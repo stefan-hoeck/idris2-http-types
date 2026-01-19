@@ -2,21 +2,38 @@ module HTTP.Parser.Header
 
 import Data.Buffer
 import Data.SortedMap
+import Derive.Prelude
+import HTTP.Header.Types
 import HTTP.Parser.Util
-import Text.ILex.Derive
+import Syntax.T1
+import Text.ILex.DStack
 
 %default total
+%hide Data.Linear.(.)
 %language ElabReflection
 
---------------------------------------------------------------------------------
--- Charsets
--- (see Appendix A from [RFC 91110](https://www.rfc-editor.org/rfc/rfc9110.txt)
---------------------------------------------------------------------------------
+md : ByteString -> MediaDesc
+md bs =
+ let (x,y) := break (47 ==) bs
+  in MD (toString x) (toString $ drop 1 y)
+
+mdstar : ByteString -> MediaDesc
+mdstar = MDStar . toString . dropEnd 2
 
 --------------------------------------------------------------------------------
 -- Regular Expressions
 -- (see Appendix A from [RFC 91110](https://www.rfc-editor.org/rfc/rfc9110.txt)
 --------------------------------------------------------------------------------
+
+qdtext : RExp True
+qdtext =
+  plus $ HTAB <|> SP <|> '!' <|> range32 0x23 0x5b <|> range32 0x5d 0x7e
+
+quotedPair : RExp True
+quotedPair = '\\' >> (HTAB <|> SP <|> Ch VCHAR)
+
+field : RExp True
+field = plus (HTAB <|> SP <|> Ch VCHAR) >> CRLF
 
 public export
 dayname : RExp True
@@ -65,14 +82,150 @@ qvalue =
       ('0' >> opt ('.' >> atmost 3 digit))
   <|> ('1' >> opt ('.' >> atmost 3 '0'))
 
-export
-weight : RExp True
-weight = OWS >> ';' >> OWS >> like "q=" >> qvalue
+token : RExp True
+token = plus (alphaNum <|> Ch tokenChar)
 
---   Accept = [ ( media-range [ weight ] ) *( OWS "," OWS ( media-range [
---    weight ] ) ) ]
---   Accept-Charset = [ ( ( token / "*" ) [ weight ] ) *( OWS "," OWS ( (
---    token / "*" ) [ weight ] ) ) ]
+--------------------------------------------------------------------------------
+-- Headers Parser
+--------------------------------------------------------------------------------
+
+public export
+data HState : List Type -> Type where
+  HMap    : HState [HeaderMap]
+  HNam    : HState [String]
+  HPar    : HState [SnocList Parameter]
+  HParS   : HState [Void]
+  HParN   : HState [String,SnocList Parameter]
+  HParQ   : HState [Void]
+  HParEq  : HState [Void]
+  HAcc    : HState [SnocList MediaRange]
+  HAccD   : HState [MediaDesc,SnocList MediaRange]
+  HOther  : HState [Void]
+  HStr    : HState [Void]
+  HEnd    : HState [Void]
+  HErr    : HState []
+
+%runElab deriveIndexed "HState" [Show,ConIndex]
+
+HSz : Bits32
+HSz = 1 + cast (conIndexHState HErr)
+
+inBoundsHState : (s : HState ts) -> (cast (conIndexHState s) < HSz) === True
+
+export %inline
+Cast (HState ts) (Index HSz) where
+  cast v = I (cast $ conIndexHState v) @{mkLT $ inBoundsHState v}
+
+public export
+0 SK : Type -> Type
+SK = DStack HState Void
+
+parameters {auto sk : SK q}
+  hins : HeaderVal -> StateAct q HState HSz
+  hins v HNam (n::HMap:>m::t) = dput HMap (insert n v m::t)
+  hins v st   x               = derr HErr st x
+
+  hother : ByteString -> StateAct q HState HSz
+  hother = hins . Other . toString . trimRight
+
+  meddesc : MediaDesc -> StateAct q HState HSz
+  meddesc md HAcc x t = dput HPar ([<]::HAccD:>md::x) t
+  meddesc md st   x t = derr HErr st x t
+
+  hcolon : StateAct q HState HSz
+  hcolon HNam x@(s::_) t =
+    case s of
+      "ACCEPT" => dput HAcc ([<]::HNam:>x) t
+      _        => cast HOther # t
+  hcolon st x t = derr HErr st x t
+
+  hend : StateAct q HState HSz
+  hend HAcc  (sm::st:>x)    = hins (Accept $ sm <>> []) st x
+  hend HAccD (d::sm::st:>x) = hins (Accept $ sm <>> [MR d []]) st x
+  hend HPar  (sp::HAccD:>d::sm::st:>x) =
+    hins (Accept $ sm <>> [MR d $ sp<>>[]]) st x
+  hend st    x              = derr HErr st x
+
+  hendpar : StateAct q HState HSz
+  hendpar HPar (sp::HAccD:>md::sd::x) = dput HAcc $ (sd:<MR md (sp<>>[]))::x
+  hendpar st   x                      = derr HErr st x
+
+  pname : String -> StateAct q HState HSz
+  pname s HPar x = dput HParN (s::x)
+  pname s st   x = derr HErr st x
+
+  pvalue : String -> StateAct q HState HSz
+  pvalue v HParN (n::sp::x) = dput HPar $ (sp:<P n v)::x
+  pvalue v st    x          = derr HErr st x
+
+  qval : Double -> StateAct q HState HSz
+  qval v HPar (sp::x) = dput HPar $ (sp:<Q v)::x
+  qval v st   x       = derr HErr st x
+
+  hstr : String -> StateAct q HState HSz
+  hstr s st x = pvalue s st x
+
+spaced : HState ts -> Steps q HSz SK -> DFA q HSz SK
+spaced r ss =
+  dfa $
+    [ newline CRLF $ dact hend
+    , conv' (plus WSP) r
+    ] ++ ss
+
+headerTrans : Lex1 q HSz SK
+headerTrans =
+  lex1
+    [ entry HMap $ dfa [read token $ dpush HNam . toUpper, newline' CRLF HEnd]
+    , entry HNam $ dfa [cexpr ':' $ dact hcolon]
+    , entry HAcc $ spaced HAcc
+        [ cexpr' ',' HAcc
+        , cexpr "*/*" $ dact (meddesc MDAny)
+        , conv (token >> "/*") $ dact . meddesc . mdstar
+        , conv (token >> "/" >> token) $ dact . meddesc . md
+        ]
+    , entry HPar $ spaced HPar [cexpr' ';' HParS, cexpr ',' $ dact hendpar]
+    , entry HParS $ spaced HParS
+        [ cexpr' ';' HParS
+        , cexpr ',' $ dact hendpar
+        , cexpr' (like "q=") HParQ
+        , read token $ dact . pname
+        ]
+    , entry HParN $ dfa [cexpr' '=' HParEq]
+    , entry HParQ $ dfa
+        [ cexpr "1." $ dact $ qval 1.0
+        , cexpr "0." $ dact $ qval 0.0
+        , conv qvalue $ dact . qval . cast . toString
+        ]
+    , entry HParEq $ dfa [read token $ dact . pvalue, copen' '"' HStr]
+    , entry HStr $ dfa
+        [ ccloseStr '"' $ dact . hstr
+        , read qdtext $ pushStr HStr
+        , conv quotedPair $ pushStr HStr . toString . drop 1
+        ]
+    , entry HOther $ spaced HOther [convline field $ dact . hother]
+    ]
+
+headerErr : Arr32 HSz (SK q -> F1 q (BoundedErr Void))
+headerErr = errs []
+
+headerEOI : Index HSz -> SK q -> F1 q (Either (BoundedErr Void) HeaderMap)
+headerEOI sk s t =
+  if sk == cast HEnd
+     then let (HMap:>[m]) # t := getStack t | _ # t => arrFail SK headerErr sk s t
+           in Right m # t
+     else arrFail SK headerErr sk s t
+
+export
+header : P1 q (BoundedErr Void) HSz SK HeaderMap
+header = P (cast HMap) (init $ HMap:>[empty]) headerTrans (\x => (Nothing #)) headerErr headerEOI
+
+export
+testHeader : String -> IO ()
+testHeader s =
+  case parseString header Virtual s of
+    Left x => putStrLn "\{x}"
+    Right hs => traverse_ printLn (kvList hs)
+
 --   Accept-Encoding = [ ( codings [ weight ] ) *( OWS "," OWS ( codings [
 --    weight ] ) ) ]
 --   Accept-Language = [ ( language-range [ weight ] ) *( OWS "," OWS (
@@ -198,18 +351,11 @@ weight = OWS >> ';' >> OWS >> like "q=" >> qvalue
 --    / %x2D-7E ; '-'-'~'
 --    )
 --
---   parameter = parameter-name "=" parameter-value
---   parameter-value = ( token / quoted-string )
---   parameters = *( OWS ";" OWS [ parameter ] )
 --   partial-URI = relative-part [ "?" query ]
 --   path-abempty = <path-abempty, see [URI], Section 3.3>
 --   port = <port, see [URI], Section 3.2.3>
 --
---   qdtext = HTAB / SP / "!" / %x23-5B ; '#'-'['
---    / %x5D-7E ; ']'-'~'
---    / obs-text
 --   query = <query, see [URI], Section 3.4>
---   quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
 --   quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
 --
 --   range-resp = incl-range "/" ( complete-length / "*" )
@@ -237,166 +383,19 @@ weight = OWS >> ';' >> OWS >> like "q=" >> qvalue
 --   weak = %x57.2F ; W/
 
 --------------------------------------------------------------------------------
--- Expressions
+-- Proofs
 --------------------------------------------------------------------------------
 
-export
-token : RExp True
-token = plus (alphaNum <|> Ch tokenChar)
-
-export
-eol : RExp True
-eol = star WSP >> CRLF
-
-export
-fieldValue : RExp True
-fieldValue = plus (Ch VCHAR <|> WSP)
-
-export %inline
-productVersion : RExp True
-productVersion = token
-
-export
-product : RExp True
-product = token >> opt ('/' >> productVersion)
-
-export %inline
-protocolName : RExp True
-protocolName = token
-
-export %inline
-protocolVersion : RExp True
-protocolVersion = token
-
-export %inline
-protocol : RExp True
-protocol = protocolName >> opt ('/' >> protocolVersion)
-
-export %inline
-pseudonym : RExp True
-pseudonym = token
-
-export %inline
-type : RExp True
-type = token
-
-export %inline
-subtype : RExp True
-subtype = token
-
-export %inline
-parameterName : RExp True
-parameterName = token
-
-export %inline
-rangeUnit : RExp True
-rangeUnit = token
-
-export %inline
-authScheme : RExp True
-authScheme = token
-
-export %inline
-connectionOption : RExp True
-connectionOption = token
-
-export %inline
-contentCoding : RExp True
-contentCoding = token
-
-export %inline
-fieldName : RExp True
-fieldName = token
-
-export %inline
-method : RExp True
-method = token
-
---------------------------------------------------------------------------------
--- Headers Parser
---------------------------------------------------------------------------------
-
-%runElab deriveParserState "HSz" "HST"
-  ["HName", "HColon", "HVal", "HEnd"]
-
-public export
-record HPart where
-  constructor HP
-  name  : ByteString
-  pairs : SortedMap ByteString ByteString
-
-%inline
-setName : ByteString -> HPart -> HPart
-setName bs = {name := toUpper bs}
-
-%inline
-addVal : ByteString -> HPart -> HPart
-addVal bs p = {pairs $= insert p.name bs} p
-
-%inline
-addEmpty : HPart -> HPart
-addEmpty = addVal empty
-
-public export
-0 SK : Type -> Type
-SK = Stack Void HPart HSz
-
-%inline
-upd : SK q => HST -> (HPart -> HPart) -> F1 q HST
-upd u f = modStackAs SK f u
-
-hval : DFA q HSz SK
-hval =
-  dfa
-    [ newline eol $ upd HName addEmpty
-    , conv fieldValue $ upd HEnd . addVal . trim
-    ]
-
-headerTrans : Lex1 q HSz SK
-headerTrans =
-  lex1
-    [ E HName $ dfa [conv token $ upd HColon . setName]
-    , E HColon $ dfa [cexpr' ':' HVal]
-    , E HVal hval
-    , E HEnd $ dfa [newline' CRLF HName]
-    ]
-
-headerErr : Arr32 HSz (SK q -> F1 q (BoundedErr Void))
-headerErr = arr32 HSz (unexpected []) []
-
-headerEOI :
-     HST
-  -> SK q
-  -> F1 q (Either (BoundedErr Void) $ SortedMap ByteString ByteString)
-headerEOI sk s t =
-  if sk == HName || sk == HEnd
-     then let v # t := getStack t in Right v.pairs # t
-     else arrFail SK headerErr sk s t
-
-export
-header : P1 q (BoundedErr Void) HSz SK (SortedMap ByteString ByteString)
-header =
-  P HName (init $ HP "" empty) headerTrans (\x => (Nothing #)) headerErr headerEOI
-
---------------------------------------------------------------------------------
--- Field Params
---------------------------------------------------------------------------------
-
-%runElab deriveParserState "FSz" "FST"
-  ["FName", "FEq", "FVal"]
-
-public export
-record HFValue where
-  constructor HFP
-  language : Maybe ByteString
-  value    : String
-
-public export
-record FPart where
-  constructor FP
-  name   : ByteString
-  lang   : Maybe ByteString
-  params : SortedMap ByteString HFValue
-
-init : FPart
-init = FP "" Nothing empty
+inBoundsHState HMap    = Refl
+inBoundsHState HNam    = Refl
+inBoundsHState HPar    = Refl
+inBoundsHState HParQ   = Refl
+inBoundsHState HParS   = Refl
+inBoundsHState HParN   = Refl
+inBoundsHState HParEq  = Refl
+inBoundsHState HAcc    = Refl
+inBoundsHState HAccD   = Refl
+inBoundsHState HOther  = Refl
+inBoundsHState HStr    = Refl
+inBoundsHState HEnd    = Refl
+inBoundsHState HErr    = Refl
