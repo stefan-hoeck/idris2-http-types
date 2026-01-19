@@ -94,6 +94,11 @@ export
 acceptsMedia : Headers -> MediaType -> Bool
 acceptsMedia hs mt = any (flip accepts mt . type) (accept hs)
 
+||| Reads the `Content-Disposition` header and converts it to a media type.
+export %inline
+contentDisposition : Headers -> Maybe ContentDisp
+contentDisposition = headerMay Content_Disposition RConD
+
 ||| Reads the `Content-Type` header and converts it to a media type.
 export %inline
 contentType : Headers -> Maybe ContentType

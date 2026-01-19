@@ -12,13 +12,13 @@ public export
 record FDPart where
   constructor FDP
   headers : Headers
-  name    : ByteString
+  name    : String
   content : ByteString
 
--- public export
--- 0 FormData : Type
--- FormData = SortedMap ByteString FDPart
---
+public export
+0 FormData : Type
+FormData = SortedMap String FDPart
+
 -- crlf : ByteString
 -- crlf = "\r\n"
 --

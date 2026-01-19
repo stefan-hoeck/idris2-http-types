@@ -110,6 +110,8 @@ data HState : List Type -> Type where
   HNat    : HState [Nat]
   HMT     : HState []
   HMT1    : HState [MediaType]
+  HCD     : HState []
+  HCD1    : HState [String]
   HEnd    : HState [Void]
   HErr    : HState []
 
@@ -121,6 +123,7 @@ data HRes : HState ts -> Stack False HState ts -> Type -> Type where
   RAcc  : HRes HAcc  [[<]]  (List MediaRange)
   RConL : HRes HNat  [0]    Nat
   RConT : HRes HMT   []     ContentType
+  RConD : HRes HCD   []     ContentDisp
 
 HSz : Bits32
 HSz = 1 + cast (conIndexHState HErr)
@@ -147,6 +150,10 @@ parameters {auto sk : SK q}
   medtype : MediaType -> StateAct q HState HSz
   medtype m HMT x t = dput HPar ([<]::HMT1:>[m]) t
   medtype m st  x t = derr HErr st x t
+
+  condisp : ByteString -> StateAct q HState HSz
+  condisp bs HCD x t = dput HPar ([<]::HCD1:>[toString bs]) t
+  condisp _  st  x t = derr HErr st x t
 
   hendpar : StateAct q HState HSz
   hendpar HPar (sp::HAccD:>md::sd::x) = dput HAcc $ (sd:<MR md (sp<>>[]))::x
@@ -197,6 +204,7 @@ headerTrans =
     , entry HParEq $ dfa [read token $ dact . pvalue, copen' '"' HStr]
     , entry HNat $ dfa [conv (plus digit) $ \bs => dput HNat [cast $ integer bs]]
     , entry HMT $ dfa [conv (token >> "/" >> token) $ dact . medtype . mt]
+    , entry HCD $ dfa [conv token $ dact . condisp]
     , entry HStr $ dfa
         [ ccloseStr '"' $ dact . hstr
         , read qdtext $ pushStr HStr
@@ -214,8 +222,10 @@ end RAcc  HAcc   [sm]                = Just $ sm<>>[]
 end RAcc  HAccD  [d,sm]              = Just $ sm<>>[MR d []]
 end RConL HNat   [n]                 = Just n
 end RConT HMT1   [m]                 = Just $ CT m []
+end RConD HCD1   [v]                 = Just $ CD v []
 end RAcc  HPar   (sp::HAccD:>[d,sm]) = Just $ sm<>>[MR d $ sp<>>[]]
 end RConT HPar   (sp::HMT1:>[m])     = Just $ CT m (sp <>>[])
+end RConD HPar   (sp::HCD1:>[s])     = Just $ CD s (sp <>>[])
 end _     _      _                   = Nothing
 
 headerEOI : HRes st x v -> Index HSz -> SK q -> F1 q (Either (BoundedErr Void) v)
@@ -260,4 +270,6 @@ inBoundsHState HEnd    = Refl
 inBoundsHState HNat    = Refl
 inBoundsHState HMT     = Refl
 inBoundsHState HMT1    = Refl
+inBoundsHState HCD     = Refl
+inBoundsHState HCD1    = Refl
 inBoundsHState HErr    = Refl

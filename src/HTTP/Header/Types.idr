@@ -65,5 +65,13 @@ public export
 MediaRanges = List MediaRange
 
 public export
+record ContentDisp where
+  constructor CD
+  disp   : String
+  params : Parameters
+
+%runElab derive "ContentDisp" [Show,Eq]
+
+public export
 0 HeaderMap : Type
 HeaderMap = SortedMap String ByteString
