@@ -47,7 +47,7 @@ AllRecConstraints @{_::_} (v::vs) = RecConstraint v :: AllRecConstraints vs
 
 export
 endpointRequest :
-     (endpoint : HList ts)
+     (endpoint  : HList ts)
   -> {auto all  : All Receive ts}
   -> {auto cons : HList (AllRecConstraints endpoint)}
   -> HList (AllRecTypes endpoint)

@@ -4,6 +4,8 @@ import Data.Buffer
 import Data.Buffer.Core
 import Data.ByteString
 import Data.Linear.Token
+import HTTP.Method
+import HTTP.URI
 import Web.Internal.Types
 
 %default total
@@ -16,6 +18,12 @@ prim__append : FormData -> String -> String -> PrimIO ()
 
 %foreign "browser:lambda:(x,a,b,w)=>x.append(a,b)"
 prim__appendBlob : FormData -> String -> Blob -> PrimIO ()
+
+%foreign "browser:lambda:(x,a,b,w)=>x.append(a,b)"
+prim__appendFile : FormData -> String -> File -> PrimIO ()
+
+%foreign "browser:lambda:(x,a,b,w)=>x.append(a,new Blob(b))"
+prim__appendBuffer : FormData -> String -> Buffer -> PrimIO ()
 
 %foreign "browser:lambda:(x,w)=>new Uint8Array(x.response)"
 prim__responseBytes : XMLHttpRequest -> PrimIO Buffer
@@ -61,27 +69,69 @@ prim__setRequestHeader : XMLHttpRequest -> (h,v : String) -> PrimIO ()
 --------------------------------------------------------------------------------
 
 export %inline
-xmlhttpRequest : HasIO io => io XMLHttpRequest
-xmlhttpRequest = primIO prim__request
+xmlhttpRequest : IO1 XMLHttpRequest
+xmlhttpRequest = ffi prim__request
 
 export %inline
-send : HasIO io => XMLHttpRequest -> io ()
-send x = primIO $ prim__send x
+status : XMLHttpRequest -> IO1 Bits16
+status x = ffi $ prim__status x
 
 export %inline
-sendTxt : HasIO io => XMLHttpRequest -> String -> io ()
-sendTxt x s = primIO $ prim__sendTxt x s
+abort : XMLHttpRequest -> IO1 ()
+abort x = ffi $ prim__abort x
 
 export %inline
-sendBuffer : HasIO io => XMLHttpRequest -> Buffer -> io ()
-sendBuffer x s = primIO $ prim__sendBuf x s
+opn : XMLHttpRequest -> Method -> URI -> IO1 ()
+opn x m u = ffi $ prim__open x (show m) "\{u}"
 
 export %inline
-sendFD : HasIO io => XMLHttpRequest -> FormData -> io ()
-sendFD x s = primIO $ prim__sendFD x s
+send : XMLHttpRequest -> IO1 ()
+send x = ffi $ prim__send x
+
+export %inline
+sendTxt : XMLHttpRequest -> String -> IO1 ()
+sendTxt x s = ffi $ prim__sendTxt x s
+
+export %inline
+sendBuffer : XMLHttpRequest -> Buffer -> IO1 ()
+sendBuffer x s = ffi $ prim__sendBuf x s
+
+export %inline
+sendFD : XMLHttpRequest -> FormData -> IO1 ()
+sendFD x s = ffi $ prim__sendFD x s
+
+export %inline
+setRequestHeader : XMLHttpRequest -> String -> ByteString -> IO1 ()
+setRequestHeader x n v = ffi $ prim__setRequestHeader x n (toString v)
+
+export %inline
+setRequestHeaderP : XMLHttpRequest -> (String, ByteString) -> IO1 ()
+setRequestHeaderP x (n,v) = setRequestHeader x n v
 
 export
-responseBytes : XMLHttpRequest -> IO ByteString
-responseBytes x = Prelude.do
-  buf <- primIO $ prim__responseBytes x
-  pure $ unsafeByteString (cast $ prim__buflen buf) buf
+responseBytes : XMLHttpRequest -> IO1 ByteString
+responseBytes x t =
+ let buf # t := ffi (prim__responseBytes x) t
+  in unsafeByteString (cast $ prim__buflen buf) buf # t
+
+export %inline
+newFD : IO1 FormData
+newFD = ffi prim__newFD
+
+export %inline
+appendTxt : FormData -> (name,value : String) -> IO1 ()
+appendTxt fd n v = ffi $ prim__append fd n v
+
+export %inline
+appendBlob : FormData -> (name : String) -> Blob -> IO1 ()
+appendBlob fd n v = ffi $ prim__appendBlob fd n v
+
+export %inline
+appendFile : FormData -> (name : String) -> File -> IO1 ()
+appendFile fd n v = ffi $ prim__appendFile fd n v
+
+export
+appendBytes : FormData -> (name : String) -> ByteString -> IO1 ()
+appendBytes x n bs t =
+ let buf # t := ioToF1 (toBuffer bs) t
+  in ffi (prim__appendBuffer x n buf) t
