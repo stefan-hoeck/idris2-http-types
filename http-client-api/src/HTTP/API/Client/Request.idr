@@ -17,8 +17,8 @@ data FDPart : Type where
 public export
 data RequestBody : Type where
   None  : RequestBody
-  Bytes : (mediatype : String) -> ByteString -> RequestBody
-  Str   : (mediatype : String) -> String -> RequestBody
+  Bytes : MediaType -> ByteString -> RequestBody
+  Str   : MediaType -> String -> RequestBody
   FD    : List (String,FDPart) -> RequestBody
 
 public export
