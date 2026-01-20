@@ -20,11 +20,15 @@ modules = HTTP.API
         , HTTP.API.Query
         , HTTP.API.TList
 
+        , HTTP.FormData
         , HTTP.Header
+        , HTTP.Header.Types
         , HTTP.Method
-        , HTTP.MimeType
+
+        , HTTP.Parser.Header
+        , HTTP.Parser.URI
+        , HTTP.Parser.Util
+
         , HTTP.RequestErr
         , HTTP.Status
-
         , HTTP.URI
-        , HTTP.URI.Parser

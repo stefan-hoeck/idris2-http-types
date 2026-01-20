@@ -12,7 +12,7 @@ import HTTP.Status
 public export
 record HeaderPart where
   constructor H
-  name        : ByteString
+  name        : String
   0 type      : Type
   errorStatus : Status
 

@@ -2,7 +2,8 @@ module HTTP.URI
 
 import Data.Buffer
 import Derive.Prelude
-import HTTP.URI.Parser
+import HTTP.Parser.URI
+import HTTP.Parser.Util
 import Text.ILex
 
 %hide Data.Linear.(.)
@@ -85,3 +86,12 @@ parseURI o = map toURI . parseBytes uri o
 export %inline
 Interpolation URI where
   interpolate = toString . encodeURI
+
+--------------------------------------------------------------------------------
+-- Test Parsing
+--------------------------------------------------------------------------------
+
+export
+testParseURI : ByteString -> IO ()
+testParseURI =
+  either (putStrLn . interpolate) (putStrLn . interpolate) . parseURI Virtual

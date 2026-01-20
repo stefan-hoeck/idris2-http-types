@@ -2,6 +2,7 @@ module HTTP.API.Decode
 
 import Data.List.Quantifiers as L
 import Derive.Prelude
+import HTTP.Header.Types
 import HTTP.RequestErr
 import HTTP.Status
 import HTTP.URI
@@ -208,7 +209,7 @@ namespace DecodeVia
   interface DecodeVia (0 from, to : Type) where
     fromBytes  : ByteString -> Either DecodeErr from
     decodeFrom : from -> Either DecodeErr to
-    mediaType  : String
+    mediaType  : MediaType
 
 export
 decodeVia : (d : DecodeVia from to) => ByteString -> Either DecodeErr to
@@ -218,7 +219,7 @@ export
 FromJSON a => DecodeVia JSON a where
   fromBytes  = mapFst (contentErr "JSON value") . parseBytes json Virtual
   decodeFrom = mapFst (contentErr "JSON value" . JErr) . fromJSON
-  mediaType  = "application/json"
+  mediaType  = MT "application" "json"
 
 --------------------------------------------------------------------------------
 -- Implementations

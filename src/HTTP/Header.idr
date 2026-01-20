@@ -3,19 +3,24 @@ module HTTP.Header
 import Data.Buffer
 import Data.ByteString
 import Data.SortedMap as SM
-import HTTP.MimeType
-import Text.ILex.Util
+import Data.String
+import HTTP.Parser.Header
+import Text.ILex
+import Text.ILex.DStack
 
+import public HTTP.Header.Types
+
+%hide Data.Linear.(.)
 %default total
 
 export
 record Headers where
   constructor MkHeaders
-  headers : SortedMap ByteString ByteString
+  headers : HeaderMap
 
 ||| Converts a set of HTTP headers to a list of name-value pairs.
 export %inline
-kvList : Headers -> List (ByteString,ByteString)
+kvList : Headers -> List (String,ByteString)
 kvList = kvList . headers
 
 export %inline
@@ -27,14 +32,14 @@ emptyHeaders = MkHeaders empty
 ||| Since HTTP header names are case-insensitive, the name
 ||| will be converted to all upper-case letters.
 export %inline
-insertHeader : (name, value : ByteString) -> Headers -> Headers
+insertHeader : (name : String) -> ByteString -> Headers -> Headers
 insertHeader name value = {headers $= insert (toUpper name) value}
 
 ||| Looks up the header of the given name.
 |||
 ||| `name` has to be in all upper-case letters.
 export %inline
-lookupUpperCaseHeader : (name : ByteString) -> Headers -> Maybe ByteString
+lookupUpperCaseHeader : (name : String) -> Headers -> Maybe ByteString
 lookupUpperCaseHeader n = lookup n . headers
 
 ||| Looks up the header of the given name.
@@ -43,7 +48,7 @@ lookupUpperCaseHeader n = lookup n . headers
 ||| searching in the dictionary of headers. Use `lookupUpperCaseHeader`
 ||| if `name` is already in upper-case letters.
 export %inline
-lookupHeader : (name : ByteString) -> Headers -> Maybe ByteString
+lookupHeader : (name : String) -> Headers -> Maybe ByteString
 lookupHeader = lookupUpperCaseHeader . toUpper
 
 --------------------------------------------------------------------------------
@@ -51,49 +56,82 @@ lookupHeader = lookupUpperCaseHeader . toUpper
 --------------------------------------------------------------------------------
 
 public export
-Accept : ByteString
+Accept : String
 Accept = "ACCEPT"
 
 public export
-Authorization : ByteString
+Authorization : String
 Authorization = "AUTHORIZATION"
 
 public export
-Content_Size : ByteString
-Content_Size = "CONTENT-SIZE"
+Content_Length : String
+Content_Length = "CONTENT-LENGTH"
 
 public export
-Content_Type : ByteString
+Content_Type : String
 Content_Type = "CONTENT-TYPE"
 
+public export
+Content_Disposition : String
+Content_Disposition = "CONTENT-DISPOSITION"
+
+headerMay : {st : _} -> {x : _} -> String -> HRes st x t -> Headers -> Maybe t
+headerMay nm res hs =
+  lookupUpperCaseHeader nm hs >>= \bs => headerMay res bs
+
+headerVal : {st : _} -> {x : _} -> String -> HRes st x t -> t -> Headers -> t
+headerVal nm res v hs =
+  fromMaybe v $ lookupUpperCaseHeader nm hs >>= \bs => headerMay res bs
+
 ||| Reads the `Accept` header and converts it to a list of media types.
-export
-accept : Headers -> List MimeType
-accept =
-    mapMaybe toMimeType
-  . maybe [] (map trim . split 44)
-  . lookupUpperCaseHeader Accept
+export %inline
+accept : Headers -> MediaRanges
+accept = headerVal Accept RAcc []
 
 ||| Checks if the given media type can be handled according to
 ||| the given request headers.
 export
-acceptsMedia : Headers -> String -> Bool
-acceptsMedia hs s =
- let ts := accept hs
-  in any ((s ==) . type) ts || any (("*/*" ==) . type) ts
+acceptsMedia : Headers -> MediaType -> Bool
+acceptsMedia hs mt = any (flip accepts mt . type) (accept hs)
+
+||| Reads the `Content-Disposition` header and converts it to a media type.
+export %inline
+contentDisposition : Headers -> Maybe ContentDisp
+contentDisposition = headerMay Content_Disposition RConD
 
 ||| Reads the `Content-Type` header and converts it to a media type.
 export %inline
-contentType : Headers -> Maybe MimeType
-contentType hs = lookupUpperCaseHeader Content_Type hs >>= toMimeType
+contentType : Headers -> Maybe ContentType
+contentType = headerMay Content_Type RConT
 
 ||| Checks if the given media type corresponds to the media type
 ||| of the request's content.
 export
-hasContentType : Headers -> String -> Bool
-hasContentType hs s = Just s == map type (contentType hs)
+hasContentType : Headers -> MediaType -> Bool
+hasContentType hs t = Just t == map type (contentType hs)
 
-||| Reads the `Content-Size` header and converts it to a natural number
+||| Reads the `Content-Length` header and converts it to a natural number
 export
-contentSize : Headers -> Nat
-contentSize = maybe 0 (cast . decimal) . lookupUpperCaseHeader Content_Size
+contentLength : Headers -> Nat
+contentLength = headerVal Content_Length RConL 0
+
+export %inline
+parseHeaders : Origin -> ByteString -> Either (ParseError Void) Headers
+parseHeaders o = map MkHeaders . parseBytes (header RMap) o
+
+export %inline
+parseHeadersMay : ByteString -> Maybe Headers
+parseHeadersMay = map MkHeaders . headerMay RMap
+
+--------------------------------------------------------------------------------
+-- Test Parsing
+--------------------------------------------------------------------------------
+
+export
+testParseHeaders : ByteString -> IO ()
+testParseHeaders =
+  either (putStrLn . interpolate) printPairs . parseHeaders Virtual
+
+  where
+    printPairs : Headers -> IO ()
+    printPairs hs = for_ (kvList hs) $ \(n,v) => putStrLn "\{n}: \{v}"

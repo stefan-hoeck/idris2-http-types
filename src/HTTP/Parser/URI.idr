@@ -1,69 +1,12 @@
-module HTTP.URI.Parser
+module HTTP.Parser.URI
 
-import Derive.Prelude
-import Data.Bits
 import Data.ByteVect as BV
-import Text.ILex
+import Derive.Prelude
+import HTTP.Parser.Util
 import Text.ILex.Derive
 
 %default total
 %language ElabReflection
-
-public export %inline
-byte_percent : Bits8
-byte_percent = 37
-
-public export %inline
-byte_equals : Bits8
-byte_equals = 61
-
-public export %inline
-byte_questionmark : Bits8
-byte_questionmark = 63
-
-public export %inline
-byte_ampersand : Bits8
-byte_ampersand = 38
-
-hex : Bits8 -> Bits8
-hex b = if b < 10 then byte_0 + b else byte_A + b - 10
-
-escape : Bits8 -> ByteString
-escape b = pack [byte_percent, hex (shiftR b 4 .&. 0xf), hex (b .&. 0xf)]
-
-||| URI-escapes all bytes for which the given predicate does
-||| not return `True`.
-|||
-||| An escaped byte is represented as two hexadecimal digits prefixed by
-||| a "percent" character ('%').
-export
-uriEscape : (Bits8 -> Bool) -> ByteString -> ByteString
-uriEscape p = go [<]
-  where
-    go : SnocList ByteString -> ByteString -> ByteString
-    go sx bs =
-      case break p bs of
-        (pre, BS 0 _)      => fastConcat $ sx <>> [pre]
-        (pre, BS (S k) bv) =>
-          let b := head bv
-           in go (sx :< pre :< escape b) (assert_smaller bs $ BS k $ tail bv)
-
-||| Converts all escape sequences (see `uriEscape`) in a byte string
-||| to the corresponding bytes.
-|||
-||| Note: This is an internal function and should only be invoked
-|||       with correctly escaped byte strings.
-export
-uriUnescape : ByteString -> ByteString
-uriUnescape = go [<]
-  where
-    go : SnocList ByteString -> ByteString -> ByteString
-    go sx bs =
-      case break (byte_percent ==) bs of
-        (pre, bs2@(BS (S (S (S k))) bv)) =>
-          let b := cast $ 16 * hexdigit (at bv 1) + hexdigit (at bv 2)
-           in go (sx :< pre :< singleton b) (assert_smaller bs $ drop 3 bs2)
-        (pre, _) => fastConcat $ sx <>> [pre]
 
 --------------------------------------------------------------------------------
 -- Predicates
@@ -138,9 +81,6 @@ unreserved = alphaNum <|> oneof ['-','.','_','~']
 
 reserved : RExp True
 reserved = genDelims <|> subDelims
-
-pctEncoded : RExp True
-pctEncoded = '%' >> hexdigit >> hexdigit
 
 pchar : RExp True
 pchar = unreserved <|> pctEncoded <|> subDelims <|> oneof [':','@']
