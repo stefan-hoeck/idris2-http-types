@@ -119,6 +119,10 @@ export %inline
 parseHeaders : Origin -> ByteString -> Either (ParseError Void) Headers
 parseHeaders o = map MkHeaders . parseBytes (header RMap) o
 
+export %inline
+parseHeadersMay : ByteString -> Maybe Headers
+parseHeadersMay = map MkHeaders . headerMay RMap
+
 --------------------------------------------------------------------------------
 -- Test Parsing
 --------------------------------------------------------------------------------

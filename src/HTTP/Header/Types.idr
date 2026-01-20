@@ -18,6 +18,17 @@ public export
 0 Parameters : Type
 Parameters = List Parameter
 
+export
+parameter : String -> Parameters -> Maybe String
+parameter s (P n v :: xs) = if s == n then Just v else parameter s xs
+parameter s _             = Nothing
+
+export
+weight : Parameters -> Double
+weight (Q v   :: xs) = v
+weight (P _ _ :: xs) = weight xs
+weight []            = 1.0
+
 public export
 data MediaDesc : Type where
   MDAny  : MediaDesc
