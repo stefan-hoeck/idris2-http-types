@@ -28,6 +28,13 @@ interface Receive (0 a : Type) where
     -> HTTPRequest
 
 public export
+Receive ReqEnv where
+  RecConstraint _ = ()
+  RecTypes _ = []
+  recs _ = []
+  adjRequest _ _ r = r
+
+public export
 interface GetResponse (0 a : Type) where
   0 RespEncodings : a -> List Type
   0 RespTypes : a -> List Type
