@@ -1,0 +1,20 @@
+package http-client-api
+
+authors    = "stefan-hoeck"
+brief      = "Client-side interpreter for HTTP API"
+version    = 0.8.0
+sourcedir  = "src"
+depends    = http-types
+           , async-js
+           , async-dom
+           , dom
+
+modules = HTTP.API.Client
+        , HTTP.API.Client.Content
+        , HTTP.API.Client.FFI
+        , HTTP.API.Client.Header
+        , HTTP.API.Client.Interface
+        , HTTP.API.Client.Method
+        , HTTP.API.Client.Path
+        , HTTP.API.Client.Query
+        , HTTP.API.Client.Request
