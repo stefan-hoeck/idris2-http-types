@@ -25,3 +25,8 @@ Receive ReqHeaders where
   RecTypes h = HeaderTypes h.headers
   recs h = headerTypes h.headers
   adjRequest h vs r = adj h.headers con vs r
+
+public export
+GetResponse ReqHeaders where
+  RespEncodings _ = []
+  RespTypes _ = []

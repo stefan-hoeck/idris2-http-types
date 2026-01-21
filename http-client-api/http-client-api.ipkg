@@ -6,6 +6,7 @@ version    = 0.8.0
 sourcedir  = "src"
 depends    = http-types
            , async-js
+           , async-dom
            , dom
 
 modules = HTTP.API.Client

@@ -29,3 +29,8 @@ Receive ReqPath where
   adjRequest p vs r =
     let pth := reqPath p.parts con vs
      in adjURI {path := pth} r
+
+public export
+GetResponse ReqPath where
+  RespEncodings _ = []
+  RespTypes _ = []

@@ -14,3 +14,8 @@ Receive ReqContent where
   RecTypes c = [c.result]
   recs     c = [c.result]
   adjRequest c [v] = adj con v
+
+public export
+GetResponse ReqContent where
+  RespEncodings _ = []
+  RespTypes _ = []

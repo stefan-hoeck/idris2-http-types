@@ -26,3 +26,8 @@ Receive ReqQuery where
   RecTypes q = QueryTypes q.fields
   recs q = queryTypes q.fields
   adjRequest q vs r = adjURI {queries := qus q.fields con vs} r
+
+public export
+GetResponse ReqQuery where
+  RespEncodings _ = []
+  RespTypes _ = []

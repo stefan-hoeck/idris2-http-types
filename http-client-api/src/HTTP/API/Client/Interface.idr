@@ -27,9 +27,24 @@ interface Receive (0 a : Type) where
     -> HTTPRequest
     -> HTTPRequest
 
+public export
+interface GetResponse (0 a : Type) where
+  0 RespEncodings : a -> List Type
+  0 RespTypes : a -> List Type
+
 --------------------------------------------------------------------------------
 -- Type-level Utilities
 --------------------------------------------------------------------------------
+
+public export
+0 AllRespTypes : All GetResponse ts => (endpoint : HList ts) -> List Type
+AllRespTypes @{[]}   []      = []
+AllRespTypes @{_::_} (v::vs) = RespTypes v ++ AllRespTypes vs
+
+public export
+0 AllRespEncodings : All GetResponse ts => (endpoint : HList ts) -> List Type
+AllRespEncodings @{[]}   []      = []
+AllRespEncodings @{_::_} (v::vs) = RespEncodings v ++ AllRespEncodings vs
 
 ||| Computes the list of type of values used to adjust the HTTP request
 ||| by a single endpoint description.
