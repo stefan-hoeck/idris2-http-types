@@ -6,9 +6,14 @@ import HTTP.API.Server.Interface
 
 checkResponseTypes : All (EncodeVia t) ts -> Request -> Handler ()
 checkResponseTypes a r =
-  case any (acceptsMedia r.headers) (forget $ mapProperty (\x => mediaType @{x}) a) of
-    True  => pure ()
-    False => throw $ requestErr unsupportedMediaType415
+ let mts := forget $ mapProperty (\x => mediaType @{x}) a
+  in case any (acceptsMedia r.headers) mts of
+       True => pure ()
+       False =>
+         throw $
+           requestErrDetails
+             "I provide: \{show mts}; Request accepts: \{show $ accept r.headers}"
+             unsupportedMediaType415
 
 public export
 Serve ReqMethod where
