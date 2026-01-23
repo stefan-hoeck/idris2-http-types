@@ -102,7 +102,8 @@ data HState : List Type -> Type where
   HParS   : HState [Void]
   HParN   : HState [String,SnocList Parameter]
   HParQ   : HState [Void]
-  HParEq  : HState [Void]
+  HVal1   : HState []
+  HVal    : HState [String]
   HAcc    : HState [SnocList MediaRange]
   HAccD   : HState [MediaDesc,SnocList MediaRange]
   HField  : HState [Void]
@@ -124,6 +125,7 @@ data HRes : HState ts -> Stack False HState ts -> Type -> Type where
   RConL : HRes HNat  [0]    Nat
   RConT : HRes HMT   []     ContentType
   RConD : HRes HCD   []     ContentDisp
+  RVal  : HRes HVal1 []     String
 
 HSz : Bits32
 HSz = 1 + cast (conIndexHState HErr)
@@ -165,6 +167,7 @@ parameters {auto sk : SK q}
 
   pvalue : String -> StateAct q HState HSz
   pvalue v HParN (n::sp::x) = dput HPar $ (sp:<P n v)::x
+  pvalue v HVal1 x          = dput HVal [v]
   pvalue v st    x          = derr HErr st x
 
   qval : Double -> StateAct q HState HSz
@@ -195,13 +198,13 @@ headerTrans =
         , cexpr' (like "q=") HParQ
         , read token $ dact . pname
         ]
-    , entry HParN $ dfa [cexpr' '=' HParEq]
+    , entry HParN $ dfa [cexpr' '=' HVal1]
     , entry HParQ $ dfa
         [ cexpr "1." $ dact $ qval 1.0
         , cexpr "0." $ dact $ qval 0.0
         , conv qvalue $ dact . qval . cast . toString
         ]
-    , entry HParEq $ dfa [read token $ dact . pvalue, copen' '"' HStr]
+    , entry HVal1 $ dfa [read token $ dact . pvalue, copen' '"' HStr]
     , entry HNat $ dfa [conv (plus digit) $ \bs => dput HNat [cast $ integer bs]]
     , entry HMT $ dfa [conv (token >> "/" >> token) $ dact . medtype . mt]
     , entry HCD $ dfa [conv token $ dact . condisp]
@@ -220,6 +223,7 @@ end : HRes st x t -> HState ts -> Stack b HState ts -> Maybe t
 end RMap  HMap   [m]                 = Just m
 end RAcc  HAcc   [sm]                = Just $ sm<>>[]
 end RAcc  HAccD  [d,sm]              = Just $ sm<>>[MR d []]
+end RVal  HVal   [s]                 = Just s
 end RConL HNat   [n]                 = Just n
 end RConT HMT1   [m]                 = Just $ CT m []
 end RConD HCD1   [v]                 = Just $ CD v []
@@ -261,7 +265,8 @@ inBoundsHState HPar    = Refl
 inBoundsHState HParQ   = Refl
 inBoundsHState HParS   = Refl
 inBoundsHState HParN   = Refl
-inBoundsHState HParEq  = Refl
+inBoundsHState HVal    = Refl
+inBoundsHState HVal1   = Refl
 inBoundsHState HAcc    = Refl
 inBoundsHState HAccD   = Refl
 inBoundsHState HField  = Refl
