@@ -25,8 +25,8 @@ prim__appendFile : FormData -> String -> File -> PrimIO ()
 %foreign "browser:lambda:(x,a,b,w)=>x.append(a,new Blob(b))"
 prim__appendBuffer : FormData -> String -> Buffer -> PrimIO ()
 
-%foreign "browser:lambda:(x,w)=>new Uint8Array(x.response)"
-prim__responseBytes : XMLHttpRequest -> PrimIO Buffer
+%foreign "browser:lambda:(x,w)=>x.responseText"
+prim__responseText : XMLHttpRequest -> PrimIO String
 
 %foreign "browser:lambda:(x,w)=>x.status"
 prim__status : XMLHttpRequest -> PrimIO Bits16
@@ -111,8 +111,7 @@ setRequestHeaderP x (n,v) = setRequestHeader x n v
 export
 responseBytes : XMLHttpRequest -> IO1 ByteString
 responseBytes x t =
- let buf # t := ffi (prim__responseBytes x) t
-  in unsafeByteString (cast $ prim__buflen buf) buf # t
+  let str # t := ffi (prim__responseText x) t in fromString str # t
 
 export %inline
 newFD : IO1 FormData
