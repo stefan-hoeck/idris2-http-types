@@ -25,7 +25,7 @@ prim__appendFile : FormData -> String -> File -> PrimIO ()
 %foreign "browser:lambda:(x,a,b,w)=>x.append(a,new Blob(b))"
 prim__appendBuffer : FormData -> String -> Buffer -> PrimIO ()
 
-%foreign "browser:lambda:(x,w)=>new Uint8Array(x.response)"
+%foreign "browser:lambda:(x,w)=>{console.log(x.response); console.log(x.responseText); return (new Uint8Array(x.response));}"
 prim__responseBytes : XMLHttpRequest -> PrimIO Buffer
 
 %foreign "browser:lambda:(x,w)=>x.status"
