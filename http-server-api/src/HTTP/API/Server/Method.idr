@@ -29,7 +29,7 @@ Serve ReqMethod where
 
   canHandle (M m _ _ _) r = m == r.method
   fromRequest m r = pure []
-  adjResponse (M _ _ _ Nothing0)  _   req resp = pure resp
+  adjResponse (M _ s _ Nothing0)  _   req resp = pure (setStatus s resp)
   adjResponse (M _ s _ $ Just0 _) [v] req resp = do
     checkResponseTypes con req
     pure $ encodeBody s v req.headers con resp
