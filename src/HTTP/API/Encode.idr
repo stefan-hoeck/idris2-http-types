@@ -79,7 +79,7 @@ export %inline
 Interpolation a => EncodeVia a String where
   encodeAs  = interpolate
   toBytes   = pure . fromString
-  mediaType = MT "test" "plain"
+  mediaType = MT "text" "plain"
 
 export %inline
 Cast a ByteString => EncodeVia a ByteString where
