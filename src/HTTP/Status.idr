@@ -7,7 +7,7 @@ import Data.ByteString
 public export
 record Status where
   constructor MkStatus
-  code    : Nat
+  code    : Bits16
   message : String
 
 export %inline

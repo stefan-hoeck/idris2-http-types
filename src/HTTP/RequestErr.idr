@@ -11,7 +11,7 @@ import JSON.Simple.Derive
 public export
 record RequestErr where
   constructor RE
-  status  : Nat
+  status  : Bits16
   error   : String
   message : String
   details : String
