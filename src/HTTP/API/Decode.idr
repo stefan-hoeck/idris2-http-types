@@ -2,6 +2,7 @@ module HTTP.API.Decode
 
 import Data.List.Quantifiers as L
 import Derive.Prelude
+import HTTP.FormData
 import HTTP.Header.Types
 import HTTP.RequestErr
 import HTTP.Status
@@ -207,19 +208,36 @@ export %inline
 namespace DecodeVia
   public export
   interface DecodeVia (0 from, to : Type) where
-    fromBytes  : ByteString -> Either DecodeErr from
+    fromBytes  : Parameters -> ByteString -> Either DecodeErr from
     decodeFrom : from -> Either DecodeErr to
     mediaType  : MediaType
 
 export
-decodeVia : (d : DecodeVia from to) => ByteString -> Either DecodeErr to
-decodeVia bs = fromBytes @{d} bs >>= decodeFrom
+decodeVia :
+     {auto d : DecodeVia from to}
+  -> Parameters
+  -> ByteString
+  -> Either DecodeErr to
+decodeVia ps bs = fromBytes @{d} ps bs >>= decodeFrom
 
 export
 FromJSON a => DecodeVia JSON a where
-  fromBytes  = mapFst (contentErr "JSON value") . parseBytes json Virtual
-  decodeFrom = mapFst (contentErr "JSON value" . JErr) . fromJSON
-  mediaType  = MT "application" "json"
+  fromBytes _ = mapFst (contentErr "JSON value") . parseBytes json Virtual
+  decodeFrom  = mapFst (contentErr "JSON value" . JErr) . fromJSON
+  mediaType   = MT "application" "json"
+
+public export
+interface FromFormData a where
+  fromFormData : FormData -> Either DecodeErr a
+
+export
+FromFormData a => DecodeVia FormData a where
+  fromBytes ps bs =
+    case parameter "boundary" ps of
+      Just b  => Right $ multipart (fromString b) bs
+      Nothing => Left $ Msg "invalid form-data header: missing boundary"
+  decodeFrom      = fromFormData
+  mediaType       = MT "multipart" "form-data"
 
 --------------------------------------------------------------------------------
 -- Implementations

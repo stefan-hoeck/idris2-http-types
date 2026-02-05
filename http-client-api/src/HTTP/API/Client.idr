@@ -68,7 +68,7 @@ parameters {auto has : Has HTTPError es}
       NoDec => cb (Right ())
       Dec d => T1.do
         bs <- responseBytes x
-        cb (mapFst (inject . DecError) $ decodeVia @{d} bs)
+        cb (mapFst (inject . DecError) $ decodeVia @{d} [] bs)
 
   onload : XMLHttpRequest -> Event -> IO1 ()
   onload x ev = T1.do
@@ -76,7 +76,7 @@ parameters {auto has : Has HTTPError es}
     case st >= 200 && st < 300 of
       False => T1.do
         bs <- responseBytes x
-        let res := decodeVia {from = JSON, to = RequestErr} bs
+        let res := decodeVia {from = JSON, to = RequestErr} [] bs
         cb (Left $ either (inject . DecError) (inject . ReqError) res)
       True  => onsuccess x
 

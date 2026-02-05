@@ -66,6 +66,10 @@ public export
 Octett = ByteString
 
 public export
+0 OctettList : Type
+OctettList = List ByteString
+
+public export
 interface EncodeVia (0 from, to : Type) where
   encodeAs : from -> to
   toBytes  : to -> List ByteString
@@ -85,6 +89,12 @@ export %inline
 Cast a ByteString => EncodeVia a ByteString where
   encodeAs  = cast
   toBytes   = pure
+  mediaType = MT "application" "octett-stream"
+
+export %inline
+Cast a (List ByteString) => EncodeVia a (List ByteString) where
+  encodeAs  = cast
+  toBytes   = id
   mediaType = MT "application" "octett-stream"
 
 export %inline
