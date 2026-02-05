@@ -239,6 +239,13 @@ FromFormData a => DecodeVia FormData a where
   decodeFrom      = fromFormData
   mediaType       = MT "multipart" "form-data"
 
+export
+getFDBytes : String -> FormData -> Either DecodeErr ByteString
+getFDBytes s xs =
+  case find ((s ==) . name) xs of
+    Nothing => Left $ Msg "missing form-data part: \{s}"
+    Just p  => Right p.content
+
 --------------------------------------------------------------------------------
 -- Implementations
 --------------------------------------------------------------------------------
