@@ -1,6 +1,5 @@
 module HTTP.FormData
 
-import Debug.Trace
 import Data.Buffer
 import Data.ByteString
 import Data.List
@@ -31,9 +30,9 @@ part : ByteString -> Maybe FDPart
 part bs = Prelude.do
   guard (not $ isPrefixOf "--" bs || size bs == 0)
   let (_,r1) := breakDropAtSubstring crlf bs
-      n      := substringIndex crlf2.repr (trace "\{r1}" r1.repr)
+      n      := substringIndex crlf2.repr r1.repr
   (rh,r2)    <- splitAt (n.fst + crlf2.size) r1
-  h          <- parseHeadersMay (trace "\{rh}" rh)
+  h          <- parseHeadersMay rh
   cd         <- contentDisposition h
   nm         <- parameter "name" cd.params
   Just $ FDP h nm r2
