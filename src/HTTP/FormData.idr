@@ -5,6 +5,7 @@ import Data.ByteString
 import Data.List
 import Data.SortedMap
 import HTTP.Header
+import System.File
 
 %default total
 
@@ -39,5 +40,15 @@ part bs = Prelude.do
 export
 multipart : (sep : ByteString) -> ByteString -> FormData
 multipart sep bs =
-  let sepBS := crlf <+> "--" <+> sep
+  let sepBS := "--" <+> sep
    in mapMaybe part (splitAtSubstring sepBS bs)
+
+sep : ByteString
+sep = "\n------geckoformboundary7fdcaa3f0caeca7c9b92816b5c94dfd9"
+
+main : IO ()
+main = Prelude.do
+  Right f  <- openFile "test" Read | Left x => printLn x
+  Right bs <- readByteString 1_000_000 f | Left x => printLn x
+  for_ (splitAtSubstring sep bs) $ printLn . size
+  printLn (size bs)
