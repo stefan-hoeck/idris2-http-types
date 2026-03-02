@@ -243,7 +243,7 @@ export
 getFDBytes : String -> FormData -> Either DecodeErr ByteString
 getFDBytes s xs =
   case find ((s ==) . name) xs of
-    Nothing => Left $ Msg "missing form-data part: \{s}"
+    Nothing => Left $ Msg "missing form-data part: \{s} (parts: \{show $ map name xs})"
     Just p  => Right p.content
 
 --------------------------------------------------------------------------------

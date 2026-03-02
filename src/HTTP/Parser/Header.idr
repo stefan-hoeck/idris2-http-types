@@ -213,7 +213,7 @@ headerTrans =
         , read qdtext $ pushStr HStr
         , conv quotedPair $ pushStr HStr . toString . drop 1
         ]
-    , entry HField $ spaced HField [convline field $ dact . hfield . trimRight]
+    , entry HField $ spaced HField [convline field $ dact . hfield . trim]
     ]
 
 headerErr : Arr32 HSz (SK q -> F1 q (BoundedErr Void))
