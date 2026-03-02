@@ -1,5 +1,6 @@
 module HTTP.FormData
 
+import Debug.Trace
 import Data.Buffer
 import Data.ByteString
 import Data.List
@@ -28,11 +29,11 @@ crlf2 = "\r\n\r\n"
 
 part : ByteString -> Maybe FDPart
 part bs = Prelude.do
-  guard (not $ "--" `isPrefixOf` bs)
+  guard (not $ isPrefixOf "--" bs || size bs == 0)
   let (_,r1) := breakDropAtSubstring crlf bs
-      n      := substringIndex crlf2.repr r1.repr
+      n      := substringIndex crlf2.repr (trace "\{r1}" r1.repr)
   (rh,r2)    <- splitAt (n.fst + crlf2.size) r1
-  h          <- parseHeadersMay rh
+  h          <- parseHeadersMay (trace "\{rh}" rh)
   cd         <- contentDisposition h
   nm         <- parameter "name" cd.params
   Just $ FDP h nm r2
@@ -44,11 +45,10 @@ multipart sep bs =
    in mapMaybe part (splitAtSubstring sepBS bs)
 
 sep : ByteString
-sep = "\n------geckoformboundary7fdcaa3f0caeca7c9b92816b5c94dfd9"
+sep = "----geckoformboundary7fdcaa3f0caeca7c9b92816b5c94dfd9"
 
 main : IO ()
 main = Prelude.do
   Right f  <- openFile "test" Read | Left x => printLn x
   Right bs <- readByteString 1_000_000 f | Left x => printLn x
-  for_ (splitAtSubstring sep bs) $ printLn . size
-  printLn (size bs)
+  for_ (multipart sep bs) $ putStrLn . name
