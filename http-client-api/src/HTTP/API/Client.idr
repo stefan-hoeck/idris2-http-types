@@ -41,8 +41,7 @@ sendBody x (Str mt s)  t =
  let _   # t := setRequestHeader x Content_Type (encodeMediaType mt) t
   in sendTxt x s t
 sendBody x (FD xs)     t =
- let _   # t := setRequestHeader x Content_Type "multipart/form-data" t
-     fd  # t := newFD t
+ let fd  # t := newFD t
      _   # t := for1_ xs (setFD fd) t
   in sendFD x fd t
 
