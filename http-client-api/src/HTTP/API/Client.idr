@@ -22,7 +22,7 @@ public export
 data HTTPError : Type where
   Timeout      : HTTPError
   NetworkError : HTTPError
-  DecError     : DecodeErr -> HTTPError
+  DecError     : Bits16 -> DecodeErr -> HTTPError
   ReqError     : RequestErr -> HTTPError
 
 setFD : FormData -> (String,FDPart) -> IO1 ()
@@ -66,8 +66,9 @@ parameters {auto has : Has HTTPError es}
     case dec of
       NoDec => cb (Right ())
       Dec d => T1.do
+        st <- status x
         bs <- responseBytes x
-        cb (mapFst (inject . DecError) $ decodeVia @{d} [] bs)
+        cb (mapFst (inject . DecError st) $ decodeVia @{d} [] bs)
 
   onload : XMLHttpRequest -> Event -> IO1 ()
   onload x ev = T1.do
@@ -76,7 +77,7 @@ parameters {auto has : Has HTTPError es}
       False => T1.do
         bs <- responseBytes x
         let res := decodeVia {from = JSON, to = RequestErr} [] bs
-        cb (Left $ either (inject . DecError) (inject . ReqError) res)
+        cb (Left $ either (inject . DecError st) (inject . ReqError) res)
       True  => onsuccess x
 
   export
