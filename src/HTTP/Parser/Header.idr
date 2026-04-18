@@ -238,8 +238,8 @@ headerEOI res sk s t =
       Nothing     := end res st x | Just v => Right v # t
    in arrFail SK headerErr sk s t
 
-export
-header : {st : _} -> {x : _} -> HRes st x t -> P1 q (BoundedErr Void) HSz SK t
+public export
+header : {st : _} -> {x : _} -> HRes st x t -> P1 q (BoundedErr Void) t
 header res =
   P (cast st) (init $ st:>x) headerTrans (\x => (Nothing #))
     headerErr (headerEOI res)

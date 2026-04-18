@@ -22,8 +22,14 @@ ipkg   = "async.ipkg"
 [custom.all.ilex]
 type   = "git"
 url    = "https://github.com/stefan-hoeck/idris2-ilex.git"
-commit = "latest:main"
+commit = "latest:simplify_parser"
 ipkg   = "ilex.ipkg"
+
+[custom.all.ilex-json]
+type   = "git"
+url    = "https://github.com/stefan-hoeck/idris2-ilex.git"
+commit = "latest:simplify_parser"
+ipkg   = "json/ilex-json.ipkg"
 
 [custom.all.async-posix]
 type   = "git"
