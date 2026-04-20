@@ -246,6 +246,6 @@ uriErr = arr32 USz (unexpected []) []
 uriEOI : UST -> SK q -> F1 q (Either (BoundedErr Void) Part)
 uriEOI sk s t = let v # t := getStack t in Right v # t
 
-export
-uri : P1 q (BoundedErr Void) USz SK Part
+public export
+uri : P1 q (BoundedErr Void) Part
 uri = P Init (init pinit) uriTrans (\x => (Nothing #)) uriErr uriEOI
