@@ -8,7 +8,7 @@ import public IO.Async.Logging
 %default total
 
 public export
-interface JSLocal where
+interface HTTPLocal => JSLocal where
   logJSErr   : JSErr -> Async JS es ()
   logHTTPErr : HTTPError -> Async JS es ()
 
