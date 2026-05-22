@@ -2,6 +2,7 @@ module HTTP.API.Client
 
 import Data.Linear.Traverse1
 import HTTP.API.Client.FFI
+import HTTP.I18n
 import IO.Async.JS
 import JSON.Simple
 import JS
@@ -56,6 +57,7 @@ adjHeader (Dec d) x t =
   setRequestHeader x Accept (encodeMediaType $ mediaType @{d}) t
 
 parameters {auto has : Has HTTPError es}
+           {auto loc : HTTPLocal}
            (dec      : Decoder t)
            (cb       : Result es t -> IO1 ())
 
@@ -97,6 +99,7 @@ parameters {auto has : Has HTTPError es}
     pure (abort x)
 
 parameters {auto has  : Has HTTPError es}
+           {auto loc  : HTTPLocal}
            (endpoint  : HList ts)
            {auto all  : All Receive ts}
            {auto cons : HList (AllRecConstraints endpoint)}
