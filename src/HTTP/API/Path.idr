@@ -8,9 +8,11 @@ module HTTP.API.Path
 ||| stored at the given position in the path.
 public export
 data Part : Type where
-  PStr       : String -> Part
-  PTill      : String -> Part
-  Capture    : (0 t : Type) -> Part
+  PScheme : String -> Part
+  PAuth   : String -> Part
+  PStr    : String -> Part
+  PTill   : String -> Part
+  Capture : (0 t : Type) -> Part
 
 public export
 FromString Part where fromString = PStr
@@ -19,6 +21,8 @@ FromString Part where fromString = PStr
 public export
 0 PartsTypes : List Part -> List Type
 PartsTypes []                = []
+PartsTypes (PScheme _ :: xs) = PartsTypes xs
+PartsTypes (PAuth _   :: xs) = PartsTypes xs
 PartsTypes (PStr _    :: xs) = PartsTypes xs
 PartsTypes (PTill _   :: xs) = PartsTypes xs
 PartsTypes (Capture t :: xs) = t :: PartsTypes xs
@@ -29,3 +33,7 @@ public export
 record ReqPath where
   constructor Path
   parts : List Part
+
+public export
+path : (scheme, authority : String) -> List Part -> ReqPath
+path s a ps = Path $ PScheme s :: PAuth a :: ps
