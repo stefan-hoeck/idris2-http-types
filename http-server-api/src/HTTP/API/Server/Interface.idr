@@ -1,6 +1,7 @@
 module HTTP.API.Server.Interface
 
 import public HTTP.API
+import public HTTP.I18n
 import public HTTP.Prog
 import public HTTP.Request
 import public HTTP.Response

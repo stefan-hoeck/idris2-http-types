@@ -8,11 +8,16 @@ import public HTTP.I18n
 
 export
 HTTPLocal where
+  endOfURIPath = "unexpected end of URI path"
   floatingPointNumber = "floating point number"
   integer = "integer"
   jsonValue = "JSON value"
   missingBoundary = "invalid form-data header: missing boundary"
   missingFormDataPart p ps = "missing form-data part: \{p} (parts: \{ps})"
+  missingHeader h = "missing HTTP header: \{h}"
+  missingQueryParameter n = "missing query parameter: '\{n}'"
+  missingQueryValue n = "missing query value: '\{n}'"
+  myMediaTypeNotAccepted x y = "i provide \{x} but requests accepts only \{y}"
   unsignedInteger = "unsigned integer"
   naturalNumber = "natural number"
   outOfBounds a b =

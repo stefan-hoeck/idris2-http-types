@@ -13,11 +13,16 @@ import Text.ILex
 
 public export
 interface HTTPLocal where
+  endOfURIPath : String
   floatingPointNumber : String
   integer : String
   jsonValue : String
   missingBoundary : String
   missingFormDataPart : (part, parts : String) -> String
+  missingHeader : String -> String
+  missingQueryParameter : String -> String
+  missingQueryValue : String -> String
+  myMediaTypeNotAccepted : String -> String -> String
   naturalNumber : String
   outOfBounds : Show a => (min,max : a) -> String
   prettyDecodeErr : DecodeErr -> String
@@ -39,6 +44,18 @@ dets : DecodeErr -> String
 dets (ContentErr _ ds) = ds
 dets (ReadErr _ _ ds)  = ds
 dets _                 = ""
+
+export
+commaSep : List String -> String
+commaSep = fastConcat . intersperse ","
+
+export
+commaSepI : Interpolation a => List a -> String
+commaSepI = commaSep . map interpolate
+
+export
+commaSepS : Show a => List a -> String
+commaSepS = commaSep . map show
 
 parameters {auto loc : HTTPLocal}
 
@@ -147,7 +164,5 @@ parameters {auto loc : HTTPLocal}
   getFDBytes : String -> FormData -> Either DecodeErr ByteString
   getFDBytes s xs =
     case find ((s ==) . name) xs of
-      Nothing =>
-       let ps := fastConcat $ intersperse "," (map name xs)
-        in Left $ Msg $ missingFormDataPart s ps
+      Nothing => Left $ Msg $ missingFormDataPart s (commaSep $ map name xs)
       Just p  => Right p.content

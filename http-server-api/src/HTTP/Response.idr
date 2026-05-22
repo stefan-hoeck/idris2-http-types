@@ -1,6 +1,7 @@
 module HTTP.Response
 
 import HTTP.API
+import HTTP.I18n
 import JSON.Simple
 
 %default total
@@ -64,23 +65,24 @@ encodeBody s v hs (e :: es) rs =
 --          Common Responses
 --------------------------------------------------------------------------------
 
-encErr : All (EncodeVia RequestErr) [JSON, Text]
-encErr = %search
+parameters {auto loc : HTTPLocal}
+  encErr : All (EncodeVia RequestErr) [JSON, Text]
+  encErr = %search
 
-export
-fromError : Maybe URI -> Headers -> RequestErr -> Response
-fromError mu hs re@(RE st err _ _ _) =
- let u := maybe "" interpolate mu
-  in encodeBody (MkStatus st err) ({path := u} re) hs encErr empty
+  export
+  fromError : Maybe URI -> Headers -> RequestErr -> Response
+  fromError mu hs re@(RE st err _ _ _) =
+   let u := maybe "" interpolate mu
+    in encodeBody (MkStatus st err) ({path := u} re) hs encErr empty
 
-export
-fromStatus : URI -> Headers -> Status -> Response
-fromStatus u hs = fromError (Just u) hs . requestErr
+  export
+  fromStatus : URI -> Headers -> Status -> Response
+  fromStatus u hs = fromError (Just u) hs . requestErr
 
-export
-notFound : URI -> Headers -> Response
-notFound u hs = fromStatus u hs notFound404
+  export
+  notFound : URI -> Headers -> Response
+  notFound u hs = fromStatus u hs notFound404
 
-export
-forbidden : URI -> Headers -> Response
-forbidden u hs = fromStatus u hs forbidden403
+  export
+  forbidden : URI -> Headers -> Response
+  forbidden u hs = fromStatus u hs forbidden403
