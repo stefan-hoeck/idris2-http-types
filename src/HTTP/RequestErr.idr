@@ -20,18 +20,6 @@ record RequestErr where
 %runElab derive "RequestErr" [Show,Eq,FromJSON,ToJSON]
 
 export
-Interpolation RequestErr where
-  interpolate (RE s e m d p) =
-    """
-    Error Details:
-    status  : \{show s}
-    error   : \{e}
-    message : \{m}
-    details : \{d}
-    path    : \{p}
-    """
-
-export
 requestErr : Status -> RequestErr
 requestErr (MkStatus c e) = RE c e "" "" ""
 

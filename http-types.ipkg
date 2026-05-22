@@ -20,6 +20,10 @@ modules = HTTP.API
         , HTTP.API.Query
         , HTTP.API.TList
 
+        , HTTP.I18n
+        , HTTP.I18n.EN
+
+        , HTTP.Debug
         , HTTP.FormData
         , HTTP.Header
         , HTTP.Header.Types

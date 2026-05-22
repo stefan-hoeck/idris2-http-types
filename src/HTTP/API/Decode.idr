@@ -67,36 +67,6 @@ modMsg f (ContentErr t d) = ContentErr t (f d)
 modMsg f (Msg m)          = Msg (f m)
 
 --------------------------------------------------------------------------------
--- Pretty printing Decode Errors
---------------------------------------------------------------------------------
-
-detailString : String -> String
-detailString "" = ""
-detailString s  = " \{s}."
-
-valueString : String -> String
-valueString "" = ""
-valueString s  = ": '\{s}'"
-
-export
-Interpolation DecodeErr where
-  interpolate (ReadErr t s d) = "Invalid \{t}\{valueString s}.\{detailString d}"
-  interpolate (ContentErr t d) = "Invalid \{t}."
-  interpolate (Msg msg) = msg
-
---------------------------------------------------------------------------------
--- Converting to Request Error
---------------------------------------------------------------------------------
-
-dets : DecodeErr -> String
-dets (ContentErr _ ds) = ds
-dets _                 = ""
-
-export
-decodeErr : Status -> DecodeErr -> RequestErr
-decodeErr s de = {message := "\{de}", details := dets de} (requestErr s)
-
---------------------------------------------------------------------------------
 -- Decode Interface
 --------------------------------------------------------------------------------
 
@@ -220,35 +190,19 @@ decodeVia :
   -> Either DecodeErr to
 decodeVia ps bs = fromBytes @{d} ps bs >>= decodeFrom
 
-export
-FromJSON a => DecodeVia JSON a where
-  fromBytes _ = mapFst (contentErr "JSON value") . parseBytes json Virtual
-  decodeFrom  = mapFst (contentErr "JSON value" . JErr) . fromJSON
-  mediaType   = MT "application" "json"
-
 public export
 interface FromFormData a where
   fromFormData : FormData -> Either DecodeErr a
 
-export
-FromFormData a => DecodeVia FormData a where
-  fromBytes ps bs =
-    case parameter "boundary" ps of
-      Just b  => Right $ multipart (fromString b) bs
-      Nothing => Left $ Msg "invalid form-data header: missing boundary"
-  decodeFrom      = fromFormData
-  mediaType       = MT "multipart" "form-data"
-
-export
-getFDBytes : String -> FormData -> Either DecodeErr ByteString
-getFDBytes s xs =
-  case find ((s ==) . name) xs of
-    Nothing => Left $ Msg "missing form-data part: \{s} (parts: \{show $ map name xs})"
-    Just p  => Right p.content
-
 --------------------------------------------------------------------------------
--- Implementations
+-- Utilities
 --------------------------------------------------------------------------------
+
+export %inline
+Decode ByteString where decode = Right
+
+export %inline
+Decode String where decode = Right . toString
 
 export
 refinedEither :
@@ -274,111 +228,3 @@ refined t details f bs = Prelude.do
   case f v of
     Nothing => Left $ ReadErr t (toString bs) details
     Just x  => Right x
-
-export
-bounded :
-     (0 a    : Type)
-  -> {auto r : Decode a}
-  -> {auto o : Ord a}
-  -> {auto c : Cast a b}
-  -> (type    : String)
-  -> (min,max : a)
-  -> ByteString
-  -> Either DecodeErr b
-bounded a t min max = refined t "Value out of bounds" $ \v =>
-  if (min <= v && v <= max) then Just (cast v) else Nothing
-
-export %inline
-Decode ByteString where decode = Right
-
-export %inline
-Decode String where decode = Right . toString
-
-export
-Decode Nat where
-  decode (BS 0 _) = Left $ readErr "natural number" empty
-  decode bs =
-    if all isDigit bs
-       then Right (cast $ decimal bs)
-       else Left $ readErr "natural number" bs
-
-export
-Decode Integer where
-  decode (BS 0 _) = Left $ readErr "integer" empty
-  decode bs@(BS (S k) bv) =
-    mapFst (setType "integer") $ case head bv of
-      45 => map (negate . cast) (decodeAs Nat (BS k $ tail bv))
-      _  => map cast $ decodeAs Nat bs
-
-export
-Decode Bits8 where
-  decode = bounded Integer "unsigned integer" 0 0xff
-
-export
-Decode Bits16 where
-  decode = bounded Integer "unsigned integer" 0 0xffff
-
-export
-Decode Bits32 where
-  decode = bounded Integer "unsigned integer" 0 0xffff_ffff
-
-export
-Decode Bits64 where
-  decode = bounded Integer "unsigned integer" 0 0xffff_ffff_ffff_ffff
-
-export
-Decode Int8 where
-  decode = bounded Integer "integer" (-0x80) 0x7f
-
-export
-Decode Int16 where
-  decode = bounded Integer "integer" (-0x8000) 0x7fff
-
-export
-Decode Int32 where
-  decode = bounded Integer "integer" (-0x8000_0000) 0x7fff_ffff
-
-export
-Decode Int64 where
-  decode = bounded Integer "integer" (-0x8000_0000_0000_0000) 0x7fff_ffff_ffff_ffff
-
-export
-Decode Double where
-  decode bs =
-    case runBytes json bs of
-      Right (JDouble x)  => Right x
-      Right (JInteger x) => Right $ cast x
-      _                  => Left $ readErr "floating point number" bs
-
---------------------------------------------------------------------------------
--- Decode Testing
---------------------------------------------------------------------------------
-
-||| Testing facility for value decoding.
-|||
-||| Example usage at the REPL:
-|||
-||| ```
-||| :exec decodeTest Double "12.112"
-||| ```
-export
-decodeTest : (0 a : Type) -> Decode a => Show a => String -> IO ()
-decodeTest a =
-  either (putStrLn . interpolate) printLn . decodeAs a . fromString
-
-||| Testing facility for path decoding.
-|||
-||| Example usage at the REPL:
-|||
-||| ```
-||| :exec decodeTest (Vect 3 Nat) "https://www.hock.com/1/2/3?foo=bar"
-||| ```
-export
-decodeManyTest : (0 a : Type) -> DecodeMany a => Show a => String -> IO ()
-decodeManyTest a s =
-  case parseURI Virtual (fromString s) of
-    Left err => putStrLn "\{err}"
-    Right u  => case decodeMany {a} u.path of
-      Right ([],v) => printLn v
-      Right (b::bs,v) => putStrLn "Only consumed up to \{b}: \{show v}"
-      Left x => putStrLn "\{x}"
