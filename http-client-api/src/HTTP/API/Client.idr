@@ -2,9 +2,10 @@ module HTTP.API.Client
 
 import Data.Linear.Traverse1
 import HTTP.API.Client.FFI
+import IO.Async.JS
 import JSON.Simple
+import JS
 import Syntax.T1
-import Web.Async
 import Web.Internal.Types
 
 import public HTTP.API.Client.Content
@@ -102,17 +103,17 @@ parameters {auto has  : Has HTTPError es}
            (args      : HList (AllRecTypes endpoint))
 
   export
-  sendEndpoint : JS es ()
+  sendEndpoint : Async JS es ()
   sendEndpoint =
     primAsync $ \cb =>
       send1 NoDec cb (endpointRequest endpoint args emptyRequest)
 
   export
-  requestEndpoint : (0 f,t : Type) -> (dec : DecodeVia f t) => JS es t
+  requestEndpoint : (0 f,t : Type) -> (dec : DecodeVia f t) => Async JS es t
   requestEndpoint f t =
     primAsync $ \cb =>
       send1 (Dec dec) cb (endpointRequest endpoint args emptyRequest)
 
   export %inline
-  requestJSONEndpoint : (0 t : Type) -> DecodeVia JSON t => JS es t
+  requestJSONEndpoint : (0 t : Type) -> DecodeVia JSON t => Async JS es t
   requestJSONEndpoint = requestEndpoint JSON

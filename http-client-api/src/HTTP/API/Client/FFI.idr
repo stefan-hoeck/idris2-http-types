@@ -64,6 +64,23 @@ prim__open : XMLHttpRequest -> String -> String -> PrimIO ()
 %foreign "browser:lambda:(x,a,b,w)=>x.setRequestHeader(a,b)"
 prim__setRequestHeader : XMLHttpRequest -> (h,v : String) -> PrimIO ()
 
+export
+%foreign "browser:lambda:x=>x.bubbles?1:0"
+bubbles : Event -> Bool
+
+export
+%foreign "browser:lambda:x=>x.cancelable?1:0"
+cancelable : Event -> Bool
+
+%foreign "browser:lambda:(x,s,f,w)=>x.addEventListener(s,\e => f(e)(w))"
+prim__addlistener : EventTarget -> String -> (Event -> PrimIO ()) -> PrimIO ()
+
+%foreign "browser:lambda:(x,w)=>x.preventDefault()"
+prim__preventDefault : Event -> PrimIO ()
+
+%foreign "browser:lambda:(x,w)=>x.stopPropagation()"
+prim__stopPropagation : Event -> PrimIO ()
+
 --------------------------------------------------------------------------------
 -- API
 --------------------------------------------------------------------------------
@@ -134,3 +151,15 @@ appendBytes : FormData -> (name : String) -> ByteString -> IO1 ()
 appendBytes x n bs t =
  let buf # t := ioToF1 (toBuffer bs) t
   in ffi (prim__appendBuffer x n buf) t
+
+export %inline
+addEventListener : EventTarget -> String -> (Event -> IO1 ()) -> IO1 ()
+addEventListener et ev cb = ffi $ prim__addlistener et ev (primRun . cb)
+
+export %inline
+preventDefault : Event -> IO1 ()
+preventDefault ev = ffi $ prim__preventDefault ev
+
+export %inline
+stopPropagation : Event -> IO1 ()
+stopPropagation ev = ffi $ prim__stopPropagation ev
