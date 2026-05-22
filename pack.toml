@@ -13,26 +13,8 @@ type   = "local"
 path   = "http-server-api"
 ipkg   = "http-server-api.ipkg"
 
-[custom.all.async]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-async.git"
-commit = "latest:main"
-ipkg   = "async.ipkg"
-
-[custom.all.ilex]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-ilex.git"
-commit = "latest:main"
-ipkg   = "ilex.ipkg"
-
-[custom.all.ilex-json]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-ilex.git"
-commit = "latest:main"
-ipkg   = "json/ilex-json.ipkg"
-
-[custom.all.async-posix]
-type   = "git"
-url    = "https://github.com/stefan-hoeck/idris2-async.git"
-commit = "latest:main"
-ipkg   = "async-posix/async-posix.ipkg"
+[custom.all]
+async.commit       = "latest:main"
+async-posix.commit = "latest:main"
+ilex.commit        = "latest:main"
+ilex-json.commit   = "latest:main"
