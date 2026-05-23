@@ -2,6 +2,7 @@ module HTTP.I18n.EN
 
 import HTTP.API.Decode
 import HTTP.RequestErr
+import IO.Async.Logging
 import public HTTP.I18n
 
 %default total
@@ -11,7 +12,9 @@ HTTPLocal where
   endOfURIPath = "unexpected end of URI path"
   floatingPointNumber = "floating point number"
   integer = "integer"
+  invalidPath = "invalid URI path"
   jsonValue = "JSON value"
+  logLevel = interpolate
   missingBoundary = "invalid form-data header: missing boundary"
   missingFormDataPart p ps = "missing form-data part: \{p} (parts: \{ps})"
   missingHeader h = "missing HTTP header: \{h}"

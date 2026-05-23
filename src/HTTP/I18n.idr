@@ -7,27 +7,30 @@ import HTTP.Header.Types
 import HTTP.RequestErr
 import HTTP.Status
 import JSON.Simple
+import IO.Async.Logging
 import Text.ILex
 
 %default total
 
 public export
 interface HTTPLocal where
-  endOfURIPath : String
-  floatingPointNumber : String
-  integer : String
-  jsonValue : String
-  missingBoundary : String
-  missingFormDataPart : (part, parts : String) -> String
-  missingHeader : String -> String
-  missingQueryParameter : String -> String
-  missingQueryValue : String -> String
+  endOfURIPath           : String
+  floatingPointNumber    : String
+  integer                : String
+  invalidPath            : String
+  jsonValue              : String
+  logLevel               : LogLevel -> String
+  missingBoundary        : String
+  missingFormDataPart    : (part, parts : String) -> String
+  missingHeader          : String -> String
+  missingQueryParameter  : String -> String
+  missingQueryValue      : String -> String
   myMediaTypeNotAccepted : String -> String -> String
-  naturalNumber : String
-  outOfBounds : Show a => (min,max : a) -> String
-  prettyDecodeErr : DecodeErr -> String
-  prettyRequestErr : RequestErr -> String
-  unsignedInteger : String
+  naturalNumber          : String
+  outOfBounds            : Show a => (min,max : a) -> String
+  prettyDecodeErr        : DecodeErr -> String
+  prettyRequestErr       : RequestErr -> String
+  unsignedInteger        : String
 
 
 --------------------------------------------------------------------------------
