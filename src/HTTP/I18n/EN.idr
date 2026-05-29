@@ -8,7 +8,7 @@ import public HTTP.I18n
 %default total
 
 export
-HTTPLocal where
+[HTTPEN] HTTPLocal where
   endOfURIPath = "unexpected end of URI path"
   floatingPointNumber = "floating point number"
   integer = "integer"

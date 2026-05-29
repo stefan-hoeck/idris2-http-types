@@ -17,7 +17,7 @@ serverErr s =
 parameters {auto lg : Logger JS}
   ||| Please note that this is an opinionated implementation of `JSLocal`.
   export
-  JSLocal where
+  [JSEN] JSLocal using HTTPEN where
     logJSErr x    =
       error
         """

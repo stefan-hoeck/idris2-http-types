@@ -21,7 +21,8 @@ import Text.ILex
 export
 decodeTest : (0 a : Type) -> Decode a => Show a => String -> IO ()
 decodeTest a =
-  either (putStrLn . interpolate) printLn . decodeAs a . fromString
+ let loc := HTTPEN
+  in either (putStrLn . interpolate) printLn . decodeAs a . fromString
 
 ||| Testing facility for path decoding.
 |||
@@ -33,9 +34,10 @@ decodeTest a =
 export
 decodeManyTest : (0 a : Type) -> DecodeMany a => Show a => String -> IO ()
 decodeManyTest a s =
-  case parseURI Virtual (fromString s) of
-    Left err => putStrLn "\{err}"
-    Right u  => case decodeMany {a} u.path of
-      Right ([],v) => printLn v
-      Right (b::bs,v) => putStrLn "only consumed up to \{b}: \{show v}"
-      Left x => putStrLn "\{x}"
+ let loc := HTTPEN
+  in case parseURI Virtual (fromString s) of
+       Left err => putStrLn "\{err}"
+       Right u  => case decodeMany {a} u.path of
+         Right ([],v) => printLn v
+         Right (b::bs,v) => putStrLn "only consumed up to \{b}: \{show v}"
+         Left x => putStrLn "\{x}"
