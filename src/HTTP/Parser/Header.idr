@@ -95,37 +95,37 @@ token = plus (alphaNum <|> Ch tokenChar)
 --------------------------------------------------------------------------------
 
 public export
-data HState : List Type -> Type where
-  HMap    : HState [HeaderMap]
-  HNam    : HState [String]
-  HPar    : HState [SnocList Parameter]
-  HParS   : HState [Void]
-  HParN   : HState [String,SnocList Parameter]
-  HParQ   : HState [Void]
-  HVal1   : HState []
-  HVal    : HState [String]
-  HAcc    : HState [SnocList MediaRange]
-  HAccD   : HState [MediaDesc,SnocList MediaRange]
-  HField  : HState [Void]
-  HStr    : HState [Void]
-  HNat    : HState [Nat]
-  HMT     : HState []
-  HMT1    : HState [MediaType]
-  HCD     : HState []
-  HCD1    : HState [String]
-  HEnd    : HState [Void]
-  HErr    : HState []
+data HState : SnocList Type -> Type where
+  HMap    : HState [<HeaderMap]
+  HNam    : HState [<String]
+  HPar    : HState [<SnocList Parameter]
+  HParS   : HState [<Void]
+  HParN   : HState [<SnocList Parameter,String]
+  HParQ   : HState [<Void]
+  HVal1   : HState [<]
+  HVal    : HState [<String]
+  HAcc    : HState [<SnocList MediaRange]
+  HAccD   : HState [<SnocList MediaRange,MediaDesc]
+  HField  : HState [<Void]
+  HStr    : HState [<Void]
+  HNat    : HState [<Nat]
+  HMT     : HState [<]
+  HMT1    : HState [<MediaType]
+  HCD     : HState [<]
+  HCD1    : HState [<String]
+  HEnd    : HState [<Void]
+  HErr    : HState [<]
 
 %runElab deriveIndexed "HState" [Show,ConIndex]
 
 public export
-data HRes : HState ts -> Stack False HState ts -> Type -> Type where
-  RMap  : HRes HMap  [SortedMap.empty] HeaderMap
-  RAcc  : HRes HAcc  [[<]]  (List MediaRange)
-  RConL : HRes HNat  [0]    Nat
-  RConT : HRes HMT   []     ContentType
-  RConD : HRes HCD   []     ContentDisp
-  RVal  : HRes HVal1 []     String
+data HRes : HState st -> Stack False HState st -> Type -> Type where
+  RMap  : HRes HMap  [<SortedMap.empty] HeaderMap
+  RAcc  : HRes HAcc  [<[<]]  (List MediaRange)
+  RConL : HRes HNat  [<0]    Nat
+  RConT : HRes HMT   [<]     ContentType
+  RConD : HRes HCD   [<]     ContentDisp
+  RVal  : HRes HVal1 [<]     String
 
 HSz : Bits32
 HSz = 1 + cast (conIndexHState HErr)
@@ -142,40 +142,41 @@ SK = DStack HState Void
 
 parameters {auto sk : SK q}
   hfield : ByteString -> StateAct q HState HSz
-  hfield b HNam (n::HMap:>[m]) = dput HMap [insert n b m]
-  hfield _ st   x              = derr HErr st x
+  hfield b HNam ([<m]:>HMap:<n) = dput HMap [<insert n b m]
+  hfield _ st   sx              = derr HErr sx st
 
   meddesc : MediaDesc -> StateAct q HState HSz
-  meddesc md HAcc x t = dput HPar ([<]::HAccD:>md::x) t
-  meddesc md st   x t = derr HErr st x t
+  meddesc md HAcc sx t = dput HPar (sx:<md:>HAccD:<[<]) t
+  meddesc md st   sx t = derr HErr sx st t
 
   medtype : MediaType -> StateAct q HState HSz
-  medtype m HMT x t = dput HPar ([<]::HMT1:>[m]) t
-  medtype m st  x t = derr HErr st x t
+  medtype m HMT sx t = dput HPar ([<m]:>HMT1:<[<]) t
+  medtype m st  sx t = derr HErr sx st t
 
   condisp : ByteString -> StateAct q HState HSz
-  condisp bs HCD x t = dput HPar ([<]::HCD1:>[toString bs]) t
-  condisp _  st  x t = derr HErr st x t
+  condisp bs HCD sx t = dput HPar ([<toString bs]:>HCD1:<[<]) t
+  condisp _  st  sx t = derr HErr sx st t
 
   hendpar : StateAct q HState HSz
-  hendpar HPar (sp::HAccD:>md::sd::x) = dput HAcc $ (sd:<MR md (sp<>>[]))::x
-  hendpar st   x                      = derr HErr st x
+  hendpar HPar (sx:<sd:<md:>HAccD:<sp) = dput HAcc $ sx:<(sd:<MR md (sp<>>[]))
+  hendpar st   sx                      = derr HErr sx st
 
   pname : String -> StateAct q HState HSz
-  pname s HPar x = dput HParN (s::x)
-  pname s st   x = derr HErr st x
+  pname s HPar sx = dput HParN (sx:<s)
+  pname s st   sx = derr HErr sx st
 
   pvalue : String -> StateAct q HState HSz
-  pvalue v HParN (n::sp::x) = dput HPar $ (sp:<P n v)::x
-  pvalue v HVal1 x          = dput HVal [v]
-  pvalue v st    x          = derr HErr st x
+  pvalue v HParN (sx:<sp:<n) = dput HPar $ sx:<(sp:<P n v)
+  pvalue v HVal1 sx          = dput HVal [<v]
+  pvalue v st    sx          = derr HErr sx st
 
   qval : Double -> StateAct q HState HSz
-  qval v HPar (sp::x) = dput HPar $ (sp:<Q v)::x
-  qval v st   x       = derr HErr st x
+  qval v HPar (sx:<sp) = dput HPar $ sx:<(sp:<Q v)
+  qval v st   sx       = derr HErr sx st
 
+  %inline
   hstr : String -> StateAct q HState HSz
-  hstr s st x = pvalue s st x
+  hstr = pvalue
 
 spaced : HState ts -> Steps q HSz SK -> DFA q HSz SK
 spaced r ss = dfa $ [conv' (plus WSP) r] ++ ss
@@ -205,7 +206,7 @@ headerTrans =
         , conv qvalue $ dact . qval . cast . toString
         ]
     , entry HVal1 $ dfa [read token $ dact . pvalue, copen' '"' HStr]
-    , entry HNat $ dfa [conv (plus digit) $ \bs => dput HNat [cast $ integer bs]]
+    , entry HNat $ dfa [conv (plus digit) $ \bs => dput HNat [<cast $ integer bs]]
     , entry HMT $ dfa [conv (token >> "/" >> token) $ dact . medtype . mt]
     , entry HCD $ dfa [conv token $ dact . condisp]
     , entry HStr $ dfa
@@ -220,28 +221,28 @@ headerErr : Arr32 HSz (SK q -> F1 q (BoundedErr Void))
 headerErr = errs []
 
 end : HRes st x t -> HState ts -> Stack b HState ts -> Maybe t
-end RMap  HMap   [m]                 = Just m
-end RAcc  HAcc   [sm]                = Just $ sm<>>[]
-end RAcc  HAccD  [d,sm]              = Just $ sm<>>[MR d []]
-end RVal  HVal   [s]                 = Just s
-end RConL HNat   [n]                 = Just n
-end RConT HMT1   [m]                 = Just $ CT m []
-end RConD HCD1   [v]                 = Just $ CD v []
-end RAcc  HPar   (sp::HAccD:>[d,sm]) = Just $ sm<>>[MR d $ sp<>>[]]
-end RConT HPar   (sp::HMT1:>[m])     = Just $ CT m (sp <>>[])
-end RConD HPar   (sp::HCD1:>[s])     = Just $ CD s (sp <>>[])
-end _     _      _                   = Nothing
+end RMap  HMap   [<m]                 = Just m
+end RAcc  HAcc   [<sm]                = Just $ sm<>>[]
+end RAcc  HAccD  [<sm,d]              = Just $ sm<>>[MR d []]
+end RVal  HVal   [<s]                 = Just s
+end RConL HNat   [<n]                 = Just n
+end RConT HMT1   [<m]                 = Just $ CT m []
+end RConD HCD1   [<v]                 = Just $ CD v []
+end RAcc  HPar   ([<sm,d]:>HAccD:<sp) = Just $ sm<>>[MR d $ sp<>>[]]
+end RConT HPar   ([<m]:>HMT1:<sp)     = Just $ CT m (sp <>>[])
+end RConD HPar   ([<s]:>HCD1:<sp)     = Just $ CD s (sp <>>[])
+end _     _      _                    = Nothing
 
 headerEOI : HRes st x v -> Index HSz -> SK q -> F1 q (Either (BoundedErr Void) v)
 headerEOI res sk s t =
-  let (st:>x) # t := read1 s.stack_ t
+  let (x:>st) # t := read1 s.stack_ t
       Nothing     := end res st x | Just v => Right v # t
    in arrFail SK headerErr sk s t
 
 public export
 header : {st : _} -> {x : _} -> HRes st x t -> P1 q (BoundedErr Void) t
 header res =
-  P (cast st) (init $ st:>x) headerTrans (\x => (Nothing #))
+  P (cast st) (init $ x:>st) headerTrans (\x => (Nothing #))
     headerErr (headerEOI res)
 
 export
