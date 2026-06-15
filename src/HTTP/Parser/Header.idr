@@ -7,7 +7,7 @@ import Derive.Prelude
 import HTTP.Header.Types
 import HTTP.Parser.Util
 import Syntax.T1
-import Text.ILex.DStack
+import Text.ILex.String.DStack
 
 %default total
 %hide Data.Linear.(.)

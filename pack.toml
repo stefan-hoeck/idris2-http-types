@@ -16,5 +16,6 @@ ipkg   = "http-server-api.ipkg"
 [custom.all]
 async.commit       = "latest:main"
 async-posix.commit = "latest:main"
+ilex-core.commit   = "latest:main"
 ilex.commit        = "latest:main"
 ilex-json.commit   = "latest:main"
