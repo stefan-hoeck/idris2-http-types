@@ -9,21 +9,23 @@ import public HTTP.API.Client.I18n
 serverErr : Bits16 -> String
 serverErr s =
   """
-  The server responded with status code \{show s}. This is a
-  server-side error. Please try again in a moment. If this does not
-  help, please get in touch with your server admin.
+  Der Server hat mit dem Statuscode \{show s} geantwortet. Dies ist ein
+  serverseitiger Fehler. Bitte versuchen Sie es in einigen Augenblicken
+  erneut. Falls das Problem weiterhin besteht, wenden Sie sich bitte an
+  Ihren Serveradministrator.
   """
 
 parameters {auto lg : Logger JS}
   ||| Please note that this is an opinionated implementation of `JSLocal`.
   export
-  [JSEN] JSLocal using HTTPDE where
+  [JSDE] JSLocal using HTTPDE where
     logJSErr x    =
       error
         """
-        An error occurred in the user interface. This is probably a bug.
+        In der Benutzeroberfläche ist ein Fehler aufgetreten. Dabei handelt
+        es sich vermutlich um einen Programmfehler.
 
-        Error details: \{dispErr x}
+        Fehlerdetails: \{dispErr x}
         """
 
     logHTTPErr Timeout         =
