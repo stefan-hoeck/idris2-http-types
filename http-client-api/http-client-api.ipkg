@@ -15,6 +15,7 @@ modules = HTTP.API.Client
         , HTTP.API.Client.Interface
         , HTTP.API.Client.I18n
         , HTTP.API.Client.I18n.EN
+        , HTTP.API.Client.I18n.DE
         , HTTP.API.Client.Method
         , HTTP.API.Client.Path
         , HTTP.API.Client.Query
