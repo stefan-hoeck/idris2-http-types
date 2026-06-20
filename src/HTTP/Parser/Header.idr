@@ -7,7 +7,7 @@ import Derive.Prelude
 import HTTP.Header.Types
 import HTTP.Parser.Util
 import Syntax.T1
-import Text.ILex.String.DStack
+import Text.ILex.DStack
 
 %default total
 %hide Data.Linear.(.)
@@ -178,46 +178,46 @@ parameters {auto sk : SK q}
   hstr : String -> StateAct q HState HSz
   hstr = pvalue
 
-spaced : HState ts -> Steps q HSz SK -> DFA q HSz SK
-spaced r ss = dfa $ [conv' (plus WSP) r] ++ ss
+spaced : Steps q HSz SK -> DFA q HSz SK
+spaced ss = dfa $ [ignore' (plus WSP)] ++ ss
 
 headerTrans : Lex1 q HSz SK
 headerTrans =
   lex1
-    [ entry HMap $ dfa [read token $ dpush HNam . toUpper, newline' CRLF HEnd]
-    , entry HNam $ dfa [cexpr' ':' HField]
-    , entry HAcc $ spaced HAcc
-        [ cexpr' ',' HAcc
-        , cexpr "*/*" $ dact (meddesc MDAny)
-        , conv (token >> "/*") $ dact . meddesc . mdstar
-        , conv (token >> "/" >> token) $ dact . meddesc . md
+    [ entry HMap $ dfa [string token $ dpush HNam . toUpper, step' CRLF HEnd]
+    , entry HNam $ dfa [step' ':' HField]
+    , entry HAcc $ spaced
+        [ step' ',' HAcc
+        , step "*/*" $ dact (meddesc MDAny)
+        , bytes (token >> "/*") $ dact . meddesc . mdstar
+        , bytes (token >> "/" >> token) $ dact . meddesc . md
         ]
-    , entry HPar $ spaced HPar [cexpr' ';' HParS, cexpr ',' $ dact hendpar]
-    , entry HParS $ spaced HParS
-        [ cexpr' ';' HParS
-        , cexpr ',' $ dact hendpar
-        , cexpr' (like "q=") HParQ
-        , read token $ dact . pname
+    , entry HPar $ spaced [step' ';' HParS, step ',' $ dact hendpar]
+    , entry HParS $ spaced
+        [ step' ';' HParS
+        , step ',' $ dact hendpar
+        , step' (like "q=") HParQ
+        , string token $ dact . pname
         ]
-    , entry HParN $ dfa [cexpr' '=' HVal1]
+    , entry HParN $ dfa [step' '=' HVal1]
     , entry HParQ $ dfa
-        [ cexpr "1." $ dact $ qval 1.0
-        , cexpr "0." $ dact $ qval 0.0
-        , conv qvalue $ dact . qval . cast . toString
+        [ step "1." $ dact $ qval 1.0
+        , step "0." $ dact $ qval 0.0
+        , bytes qvalue $ dact . qval . cast . toString
         ]
-    , entry HVal1 $ dfa [read token $ dact . pvalue, copen' '"' HStr]
-    , entry HNat $ dfa [conv (plus digit) $ \bs => dput HNat [<cast $ integer bs]]
-    , entry HMT $ dfa [conv (token >> "/" >> token) $ dact . medtype . mt]
-    , entry HCD $ dfa [conv token $ dact . condisp]
+    , entry HVal1 $ dfa [string token $ dact . pvalue, opn' '"' HStr]
+    , entry HNat $ dfa [bytes (plus digit) $ \bs => dput HNat [<cast $ integer bs]]
+    , entry HMT $ dfa [bytes (token >> "/" >> token) $ dact . medtype . mt]
+    , entry HCD $ dfa [bytes token $ dact . condisp]
     , entry HStr $ dfa
-        [ ccloseStr '"' $ dact . hstr
-        , read qdtext $ pushStr HStr
-        , conv quotedPair $ pushStr HStr . toString . drop 1
+        [ closeStr '"' $ dact . hstr
+        , string qdtext $ pushStr HStr
+        , bytes quotedPair $ pushStr HStr . toString . drop 1
         ]
-    , entry HField $ spaced HField [convline field $ dact . hfield . trim]
+    , entry HField $ spaced [bytes field $ dact . hfield . trim]
     ]
 
-headerErr : Arr32 HSz (SK q -> F1 q (BoundedErr Void))
+headerErr : Arr32 HSz (SK q -> F1 q (BBErr Void))
 headerErr = errs []
 
 end : HRes st x t -> HState ts -> Stack b HState ts -> Maybe t
@@ -233,14 +233,14 @@ end RConT HPar   ([<m]:>HMT1:<sp)     = Just $ CT m (sp <>>[])
 end RConD HPar   ([<s]:>HCD1:<sp)     = Just $ CD s (sp <>>[])
 end _     _      _                    = Nothing
 
-headerEOI : HRes st x v -> Index HSz -> SK q -> F1 q (Either (BoundedErr Void) v)
+headerEOI : HRes st x v -> Index HSz -> SK q -> F1 q (Either (BBErr Void) v)
 headerEOI res sk s t =
   let (x:>st) # t := read1 s.stack_ t
       Nothing     := end res st x | Just v => Right v # t
    in arrFail SK headerErr sk s t
 
 public export
-header : {st : _} -> {x : _} -> HRes st x t -> P1 q (BoundedErr Void) t
+header : {st : _} -> {x : _} -> HRes st x t -> P1 q (BBErr Void) t
 header res =
   P (cast st) (init $ x:>st) headerTrans (\x => (Nothing #))
     headerErr (headerEOI res)

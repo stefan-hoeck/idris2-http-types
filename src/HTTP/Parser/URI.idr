@@ -205,30 +205,30 @@ upd u f = modStackAs SK f u
 init : DFA q USz SK
 init =
   dfa
-    [ conv (scheme >> ':') $ upd Hier . setScheme
-    , conv authority $ upd Segments . setAuth
-    , conv ('/' >> opt segmentNz) $ upd Segments . absoluteSegment
-    , conv segmentNzNc $ upd Segments . rootSegment
-    , conv query $ upd Fragment . setQuery
-    , conv fragment $ upd End . setFragment
+    [ bytes (scheme >> ':') $ upd Hier . setScheme
+    , bytes authority $ upd Segments . setAuth
+    , bytes ('/' >> opt segmentNz) $ upd Segments . absoluteSegment
+    , bytes segmentNzNc $ upd Segments . rootSegment
+    , bytes query $ upd Fragment . setQuery
+    , bytes fragment $ upd End . setFragment
     ]
 
 hier : DFA q USz SK
 hier =
   dfa
-    [ conv authority $ upd Segments . setAuth
-    , conv ('/' >> opt segmentNz) $ upd Segments . absoluteSegment
-    , conv segmentNz $ upd Segments . rootSegment
-    , conv query $ upd Fragment . setQuery
-    , conv fragment $ upd End . setFragment
+    [ bytes authority $ upd Segments . setAuth
+    , bytes ('/' >> opt segmentNz) $ upd Segments . absoluteSegment
+    , bytes segmentNz $ upd Segments . rootSegment
+    , bytes query $ upd Fragment . setQuery
+    , bytes fragment $ upd End . setFragment
     ]
 
 segments : DFA q USz SK
 segments =
   dfa
-    [ conv ('/' >> segment) $ upd Segments . addSegment
-    , conv query $ upd Fragment . setQuery
-    , conv fragment $ upd End . setFragment
+    [ bytes ('/' >> segment) $ upd Segments . addSegment
+    , bytes query $ upd Fragment . setQuery
+    , bytes fragment $ upd End . setFragment
     ]
 
 uriTrans : Lex1 q USz SK
@@ -237,15 +237,15 @@ uriTrans =
     [ E Init init
     , E Hier hier
     , E Segments segments
-    , E Fragment $ dfa [conv fragment $ upd End . setFragment]
+    , E Fragment $ dfa [bytes fragment $ upd End . setFragment]
     ]
 
-uriErr : Arr32 USz (SK q -> F1 q (BoundedErr Void))
+uriErr : Arr32 USz (SK q -> F1 q (BBErr Void))
 uriErr = arr32 USz (unexpected []) []
 
-uriEOI : UST -> SK q -> F1 q (Either (BoundedErr Void) Part)
+uriEOI : UST -> SK q -> F1 q (Either (BBErr Void) Part)
 uriEOI sk s t = let v # t := getStack t in Right v # t
 
 public export
-uri : P1 q (BoundedErr Void) Part
+uri : P1 q (BBErr Void) Part
 uri = P Init (init pinit) uriTrans (\x => (Nothing #)) uriErr uriEOI
