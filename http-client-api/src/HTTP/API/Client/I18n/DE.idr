@@ -31,18 +31,21 @@ parameters {auto lg : Logger JS}
     logHTTPErr Timeout         =
       error
         """
-        Connection to the server timed out. That can happen when you are
-        on a slow connection or the server is busy with other requests. If
-        the situation does not improve, please get in touch with your
-        server admin.
+        Die Verbindung zum Server ist abgelaufen. Dies kann passieren, wenn
+        Ihre Internetverbindung langsam ist oder der Server mit anderen
+        Anfragen ausgelastet ist. Sollte sich die Situation nicht verbessern,
+        wenden Sie sich bitte an Ihren Serveradministrator.
         """
+
     logHTTPErr NetworkError    =
       error
       """
-      Error when connecting to the server. Please check your network
-      connection and whether your VPN is correctly set up (if necessary). If this
-      does not help, the server might be down. In that case, please
-      get in touch with your server admin.
+      Fehler bei der Verbindung zum Server. Bitte überprüfen Sie Ihre
+      Netzwerkverbindung sowie gegebenenfalls die korrekte Einrichtung
+      Ihres VPNs. Sollte dies nicht helfen, ist der Server möglicherweise
+      nicht erreichbar. Wenden Sie sich in diesem Fall bitte an Ihren
+      Serveradministrator.
+
       """
     logHTTPErr (ReqError m)   =
       case cast {to = Bits16} m.status of
@@ -54,26 +57,30 @@ parameters {auto lg : Logger JS}
           else
             error
               """
-              The server responded with status code \{show m.status}, which is
-              unexpected and might be a bug. Please get in touch with your server admin
-              and send them the following detailed error message:
+              Der Server hat mit dem Statuscode \{show m.status} geantwortet.
+              Dieser Statuscode ist unerwartet und könnte auf einen Programmfehler
+              hinweisen. Bitte wenden Sie sich an Ihren Serveradministrator und
+              übermitteln Sie die folgende detaillierte Fehlermeldung:
               \{m}
               """
+
     logHTTPErr (DecError s x) =
       if s >= 500 then error (serverErr s)
       else case x of
         ContentErr t d => error
           """
-          I got an error when decoding a response from the server. This is
-          a bug. Please inform your server admin and send them the error
-          message printed below:
+          Beim Verarbeiten der Serverantwort ist ein Fehler aufgetreten.
+          Dies ist ein Programmfehler. Bitte informieren Sie Ihren
+          Serveradministrator und übermitteln Sie die unten stehende
+          Fehlermeldung:
           \{t}
           \{d}
           """
         x => error
           """
-          I got an error when decoding a response from the server. This is
-          a bug. Please inform your server admin and send them the error
-          message printed below:
+          Beim Verarbeiten der Serverantwort ist ein Fehler aufgetreten.
+          Dies ist ein Programmfehler. Bitte informieren Sie Ihren
+          Serveradministrator und übermitteln Sie die unten stehende
+          Fehlermeldung:
           \{x}
           """
