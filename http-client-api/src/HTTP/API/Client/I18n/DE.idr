@@ -39,14 +39,14 @@ parameters {auto lg : Logger JS}
 
     logHTTPErr NetworkError    =
       error
-      """
-      Fehler bei der Verbindung zum Server. Bitte überprüfen Sie Ihre
-      Netzwerkverbindung sowie gegebenenfalls die korrekte Einrichtung
-      Ihres VPNs. Sollte dies nicht helfen, ist der Server möglicherweise
-      nicht erreichbar. Wenden Sie sich in diesem Fall bitte an Ihren
-      Serveradministrator.
+        """
+        Fehler bei der Verbindung zum Server. Bitte überprüfen Sie Ihre
+        Netzwerkverbindung sowie gegebenenfalls die korrekte Einrichtung
+        Ihres VPNs. Sollte dies nicht helfen, ist der Server möglicherweise
+        nicht erreichbar. Wenden Sie sich in diesem Fall bitte an Ihren
+        Serveradministrator.
+        """
 
-      """
     logHTTPErr (ReqError m)   =
       case cast {to = Bits16} m.status of
         403 => warn m.message
