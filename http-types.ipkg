@@ -8,6 +8,7 @@ depends    = base         >= 0.8.0
            , async
            , ilex
            , json-simple
+           , finite
 
 modules = HTTP.API
         , HTTP.API.Content

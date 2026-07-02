@@ -46,5 +46,3 @@ export
   prettyDecodeErr (ReadErr t s d) = "Ungültig \{t}\{valueString s}"
   prettyDecodeErr (ContentErr t d) = "Ungültig \{t}"
   prettyDecodeErr (Msg msg) = msg
-
-
