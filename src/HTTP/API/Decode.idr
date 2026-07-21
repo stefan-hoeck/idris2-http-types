@@ -184,7 +184,8 @@ namespace DecodeVia
 
 export
 decodeVia :
-     {auto d : DecodeVia from to}
+     {0 from, to : Type}
+  -> {auto d : DecodeVia from to}
   -> Parameters
   -> ByteString
   -> Either DecodeErr to
