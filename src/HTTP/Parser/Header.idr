@@ -179,7 +179,7 @@ parameters {auto sk : SK q}
   hstr = pvalue
 
 spaced : Steps q HSz SK -> DFA q HSz SK
-spaced ss = dfa $ [ignore' (plus WSP)] ++ ss
+spaced ss = dfa $ [ignore (plus WSP)] ++ ss
 
 headerTrans : Lex1 q HSz SK
 headerTrans =
