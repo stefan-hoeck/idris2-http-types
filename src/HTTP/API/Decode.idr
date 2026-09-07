@@ -2,6 +2,7 @@ module HTTP.API.Decode
 
 import Data.List.Quantifiers as L
 import Derive.Prelude
+import HTTP.API.Encode
 import HTTP.FormData
 import HTTP.Header.Types
 import HTTP.RequestErr
@@ -181,6 +182,18 @@ namespace DecodeVia
     fromBytes  : Parameters -> ByteString -> Either DecodeErr from
     decodeFrom : from -> Either DecodeErr to
     mediaType  : MediaType
+
+export %inline
+DecodeVia Octett ByteString where
+  fromBytes _ = Right
+  decodeFrom  = Right
+  mediaType   = MT "application" "octett-stream"
+
+export %inline
+DecodeVia ByteString String where
+  fromBytes _ = Right
+  decodeFrom  = Right . toString
+  mediaType   = MT "text" "plain"
 
 export
 decodeVia :
