@@ -1,6 +1,7 @@
 module HTTP.I18n
 
 import Data.ByteString
+import HTTP.API.Encode
 import HTTP.API.Decode
 import HTTP.FormData
 import HTTP.Header.Types
@@ -162,7 +163,7 @@ parameters {auto loc : HTTPLocal}
     DecodeVia JSON a where
       fromBytes _ = mapFst (contentErr jsonValue) . parseBytes json Virtual
       decodeFrom  = mapFst (contentErr jsonValue . JErr) . fromJSON
-      mediaType   = MT "application" "json"
+      mediaType   = applicationJSON
 
   parameters {auto fd : FromFormData a}
 
@@ -173,7 +174,7 @@ parameters {auto loc : HTTPLocal}
           Just b  => Right $ multipart (fromString b) bs
           Nothing => Left $ Msg missingBoundary
       decodeFrom      = fromFormData
-      mediaType       = MT "multipart" "form-data"
+      mediaType       = multipartFormData
 
   export
   getFDBytes : String -> FormData -> Either DecodeErr ByteString

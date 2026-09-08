@@ -57,6 +57,22 @@ EncodeMany a => EncodeMany (SnocList a) where
 -- EncodeVia interface
 --------------------------------------------------------------------------------
 
+export %inline
+applicationOctettStream : MediaType
+applicationOctettStream = MT "application" "octett-stream"
+
+export %inline
+applicationJSON : MediaType
+applicationJSON = MT "application" "json"
+
+export %inline
+textPlain : MediaType
+textPlain = MT "text" "plain"
+
+export %inline
+multipartFormData : MediaType
+multipartFormData = MT "multipart" "form-data"
+
 public export
 0 Text : Type
 Text = String
@@ -83,25 +99,25 @@ export %inline
 Interpolation a => EncodeVia a String where
   encodeAs  = interpolate
   toBytes   = pure . fromString
-  mediaType = MT "text" "plain"
+  mediaType = textPlain
 
 export %inline
 Cast a ByteString => EncodeVia a ByteString where
   encodeAs  = cast
   toBytes   = pure
-  mediaType = MT "application" "octett-stream"
+  mediaType = applicationOctettStream
 
 export %inline
 Cast a (List ByteString) => EncodeVia a (List ByteString) where
   encodeAs  = cast
   toBytes   = id
-  mediaType = MT "application" "octett-stream"
+  mediaType = applicationOctettStream
 
 export %inline
 ToJSON a => EncodeVia a JSON where
   encodeAs  = toJSON
   toBytes   = pure . fromString . show
-  mediaType = MT "application" "json"
+  mediaType = applicationJSON
 
 --------------------------------------------------------------------------------
 -- Implementations

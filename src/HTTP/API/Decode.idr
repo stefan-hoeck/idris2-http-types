@@ -187,13 +187,13 @@ export %inline
 DecodeVia Octett ByteString where
   fromBytes _ = Right
   decodeFrom  = Right
-  mediaType   = MT "application" "octett-stream"
+  mediaType   = applicationOctettStream
 
 export %inline
 DecodeVia ByteString String where
   fromBytes _ = Right
   decodeFrom  = Right . toString
-  mediaType   = MT "text" "plain"
+  mediaType   = textPlain
 
 export
 decodeVia :

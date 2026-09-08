@@ -2,8 +2,10 @@ module HTTP.API.Client.Request
 
 import HTTP.API
 import Web.Internal.Types
+import JS
 
 %hide Types.Headers
+%hide JS.ByteString.ByteString
 %default total
 
 ||| Part of a `FormData` object
@@ -17,6 +19,7 @@ data FDPart : Type where
 public export
 data RequestBody : Type where
   None  : RequestBody
+  Blob  : MediaType -> Blob -> RequestBody
   Bytes : MediaType -> ByteString -> RequestBody
   Str   : MediaType -> String -> RequestBody
   FD    : List (String,FDPart) -> RequestBody
@@ -51,3 +54,13 @@ export %inline
 (e : EncodeVia f t) => RequestEncode f t where
   reqEncodeAs  = encodeAs
   toBody       = Bytes (mediaType @{e}) . fastConcat . toBytes @{e}
+
+export %inline
+RequestEncode Blob Blob where
+  reqEncodeAs = id
+  toBody      = Blob applicationOctettStream
+
+export %inline
+RequestEncode File Blob where
+  reqEncodeAs f = up f
+  toBody        = Blob applicationOctettStream
