@@ -40,6 +40,9 @@ prim__sendTxt : XMLHttpRequest -> String -> PrimIO ()
 %foreign "browser:lambda:(x,s,w)=>x.send(s)"
 prim__sendBuf : XMLHttpRequest -> Buffer -> PrimIO ()
 
+%foreign "browser:lambda:(x,s,w)=>x.send(s)"
+prim__sendBlob : XMLHttpRequest -> Blob -> PrimIO ()
+
 %foreign "browser:lambda:(w)=> new FormData()"
 prim__newFD : PrimIO FormData
 
@@ -112,6 +115,10 @@ sendTxt x s = ffi $ prim__sendTxt x s
 export %inline
 sendBuffer : XMLHttpRequest -> Buffer -> IO1 ()
 sendBuffer x s = ffi $ prim__sendBuf x s
+
+export %inline
+sendBlob : XMLHttpRequest -> Blob -> IO1 ()
+sendBlob x s = ffi $ prim__sendBlob x s
 
 export %inline
 sendFD : XMLHttpRequest -> FormData -> IO1 ()

@@ -39,6 +39,9 @@ sendBody x (Bytes mt b) t =
  let _   # t := setRequestHeader x Content_Type (encodeMediaType mt) t
      buf # t := ioToF1 (toBuffer b) t
   in sendBuffer x buf t
+sendBody x (Blob mt b) t =
+ let _   # t := setRequestHeader x Content_Type (encodeMediaType mt) t
+  in sendBlob x b t
 sendBody x (Str mt s)  t =
  let _   # t := setRequestHeader x Content_Type (encodeMediaType mt) t
   in sendTxt x s t
