@@ -6,7 +6,7 @@ import Data.SortedMap as SM
 import Data.String
 import HTTP.Parser.Header
 import Text.ILex
-import Text.ILex.DStack
+import Text.ILex.State.Dependent
 
 import public HTTP.Header.Types
 

@@ -3,7 +3,9 @@ module HTTP.Parser.URI
 import Data.ByteVect as BV
 import Derive.Prelude
 import HTTP.Parser.Util
-import Text.ILex.Derive
+import Text.ILex
+import Text.ILex.State.Regular
+import Text.ILex.State.Derive
 
 %default total
 %language ElabReflection
@@ -191,18 +193,18 @@ setFragment : ByteString -> Part -> Part
 setFragment bs = {frag := Just $ uriUnescape (drop 1 bs)}
 
 public export
-0 SK : Type -> Type
-SK = Stack Void Part USz
+0 ST : Type -> Type
+ST = State Void Part USz
 
 %inline
-upd : SK q => UST -> (Part -> Part) -> F1 q UST
-upd u f = modStackAs SK f u
+upd : ST q => UST -> (Part -> Part) -> F1 q UST
+upd u f = modStackAs ST f u
 
 --------------------------------------------------------------------------------
 -- Transformations
 --------------------------------------------------------------------------------
 
-init : DFA q USz SK
+init : DFA q USz ST
 init =
   dfa
     [ bytes (scheme >> ':') $ upd Hier . setScheme
@@ -213,7 +215,7 @@ init =
     , bytes fragment $ upd End . setFragment
     ]
 
-hier : DFA q USz SK
+hier : DFA q USz ST
 hier =
   dfa
     [ bytes authority $ upd Segments . setAuth
@@ -223,7 +225,7 @@ hier =
     , bytes fragment $ upd End . setFragment
     ]
 
-segments : DFA q USz SK
+segments : DFA q USz ST
 segments =
   dfa
     [ bytes ('/' >> segment) $ upd Segments . addSegment
@@ -231,7 +233,7 @@ segments =
     , bytes fragment $ upd End . setFragment
     ]
 
-uriTrans : Lex1 q USz SK
+uriTrans : Lex1 q USz ST
 uriTrans =
   lex1
     [ E Init init
@@ -240,10 +242,10 @@ uriTrans =
     , E Fragment $ dfa [bytes fragment $ upd End . setFragment]
     ]
 
-uriErr : Arr32 USz (SK q -> F1 q (BBErr Void))
+uriErr : Arr32 USz (ST q -> F1 q (BBErr Void))
 uriErr = arr32 USz (unexpected []) []
 
-uriEOI : UST -> SK q -> F1 q (Either (BBErr Void) Part)
+uriEOI : UST -> ST q -> F1 q (Either (BBErr Void) Part)
 uriEOI sk s t = let v # t := getStack t in Right v # t
 
 public export

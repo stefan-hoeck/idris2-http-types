@@ -7,7 +7,7 @@ import Derive.Prelude
 import HTTP.Header.Types
 import HTTP.Parser.Util
 import Syntax.T1
-import Text.ILex.DStack
+import Text.ILex.State.Dependent
 
 %default total
 %hide Data.Linear.(.)
@@ -137,10 +137,10 @@ Cast (HState ts) (Index HSz) where
   cast v = I (cast $ conIndexHState v) @{mkLT $ inBoundsHState v}
 
 public export
-0 SK : Type -> Type
-SK = DStack HState Void
+0 ST : Type -> Type
+ST = DState HState Void
 
-parameters {auto sk : SK q}
+parameters {auto sk : ST q}
   hfield : ByteString -> StateAct q HState HSz
   hfield b HNam ([<m]:>HMap:<n) = dput HMap [<insert n b m]
   hfield _ st   sx              = derr HErr sx st
@@ -178,10 +178,10 @@ parameters {auto sk : SK q}
   hstr : String -> StateAct q HState HSz
   hstr = pvalue
 
-spaced : Steps q HSz SK -> DFA q HSz SK
+spaced : Steps q HSz ST -> DFA q HSz ST
 spaced ss = dfa $ [ignore (plus WSP)] ++ ss
 
-headerTrans : Lex1 q HSz SK
+headerTrans : Lex1 q HSz ST
 headerTrans =
   lex1
     [ entry HMap $ dfa [string token $ dpush HNam . toUpper, step' CRLF HEnd]
@@ -217,7 +217,7 @@ headerTrans =
     , entry HField $ spaced [bytes field $ dact . hfield . trim]
     ]
 
-headerErr : Arr32 HSz (SK q -> F1 q (BBErr Void))
+headerErr : Arr32 HSz (ST q -> F1 q (BBErr Void))
 headerErr = errs []
 
 end : HRes st x t -> HState ts -> Stack b HState ts -> Maybe t
@@ -233,11 +233,11 @@ end RConT HPar   ([<m]:>HMT1:<sp)     = Just $ CT m (sp <>>[])
 end RConD HPar   ([<s]:>HCD1:<sp)     = Just $ CD s (sp <>>[])
 end _     _      _                    = Nothing
 
-headerEOI : HRes st x v -> Index HSz -> SK q -> F1 q (Either (BBErr Void) v)
+headerEOI : HRes st x v -> Index HSz -> ST q -> F1 q (Either (BBErr Void) v)
 headerEOI res sk s t =
   let (x:>st) # t := read1 s.stack_ t
       Nothing     := end res st x | Just v => Right v # t
-   in arrFail SK headerErr sk s t
+   in arrFail ST headerErr sk s t
 
 public export
 header : {st : _} -> {x : _} -> HRes st x t -> P1 q (BBErr Void) t
