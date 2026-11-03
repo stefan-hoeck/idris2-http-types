@@ -178,8 +178,8 @@ parameters {auto sk : ST q}
   hstr : String -> StateAct q HState HSz
   hstr = pvalue
 
-spaced : Steps q HSz ST -> DFA q HSz ST
-spaced ss = dfa $ [ignore (plus WSP)] ++ ss
+spaced : Steps q HSz ST -> DFA1 q HSz ST
+spaced ss = dfa $ [ign (plus WSP)] ++ ss
 
 headerTrans : Lex1 q HSz ST
 headerTrans =
