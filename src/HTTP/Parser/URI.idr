@@ -204,7 +204,7 @@ upd u f = modStackAs ST f u
 -- Transformations
 --------------------------------------------------------------------------------
 
-init : DFA q USz ST
+init : DFA1 q USz ST
 init =
   dfa
     [ bytes (scheme >> ':') $ upd Hier . setScheme
@@ -215,7 +215,7 @@ init =
     , bytes fragment $ upd End . setFragment
     ]
 
-hier : DFA q USz ST
+hier : DFA1 q USz ST
 hier =
   dfa
     [ bytes authority $ upd Segments . setAuth
@@ -225,7 +225,7 @@ hier =
     , bytes fragment $ upd End . setFragment
     ]
 
-segments : DFA q USz ST
+segments : DFA1 q USz ST
 segments =
   dfa
     [ bytes ('/' >> segment) $ upd Segments . addSegment
