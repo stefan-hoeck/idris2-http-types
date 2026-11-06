@@ -27,6 +27,30 @@ data HTTPError : Type where
   DecError     : Bits16 -> DecodeErr -> HTTPError
   ReqError     : RequestErr -> HTTPError
 
+||| Tries to convert an `HTTPErr` to an error of type `e`
+||| by decoding its `ReqError` constructor.
+export %inline
+toJSONErr : FromJSON e => HTTPError -> Maybe e
+toJSONErr (ReqError x) = toJSONErr x
+toJSONErr _            = Nothing
+
+||| Tries to convert an `HTTPErr` to an error of type `e`
+||| and throws that in case the conversion succeeds. Otherwise,
+||| the original request error is rethrown.
+export
+decodeHTTPErr :
+     (0 e : Type)
+  -> {auto hr : Has HTTPError es}
+  -> {auto ha : Has e es}
+  -> {auto fj : FromJSON e}
+  -> {auto me : MErr f}
+  -> f es a
+  -> f es a
+decodeHTTPErr e act =
+  catch HTTPError act >>= \case
+    Right v => pure v
+    Left x  => maybe (throw x) throw (toJSONErr @{fj} x)
+
 setFD : FormData -> (String,FDPart) -> IO1 ()
 setFD fd (nm,FDBlob b)   t = appendBlob fd nm b t
 setFD fd (nm,FDBytes b)  t = appendBytes fd nm b t
