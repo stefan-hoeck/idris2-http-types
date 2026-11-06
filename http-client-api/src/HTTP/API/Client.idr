@@ -27,6 +27,8 @@ data HTTPError : Type where
   DecError     : Bits16 -> DecodeErr -> HTTPError
   ReqError     : RequestErr -> HTTPError
 
+||| Tries to convert an `HTTPErr` to an error of type `e`
+||| by decoding its `ReqError` constructor.
 export %inline
 toJSONErr : FromJSON e => HTTPError -> Maybe e
 toJSONErr (ReqError x) = toJSONErr x
