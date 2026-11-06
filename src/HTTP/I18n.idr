@@ -85,7 +85,7 @@ parameters {auto loc : HTTPLocal}
 
   export
   decodeErr : Status -> DecodeErr -> RequestErr
-  decodeErr s de = {message := "\{de}", details := dets de} (requestErr s)
+  decodeErr s de = {message := "\{de}", details := Right $ dets de} (requestErr s)
 
   export
   bounded :

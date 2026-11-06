@@ -1,5 +1,6 @@
 module HTTP.I18n.EN
 
+import JSON.Parser
 import HTTP.API.Decode
 import HTTP.RequestErr
 import IO.Async.Logging
@@ -32,7 +33,7 @@ export
     status  : \{show s}
     error   : \{e}
     message : \{m}
-    details : \{d}
+    details : \{either show id d}
     path    : \{p}
     """
 
