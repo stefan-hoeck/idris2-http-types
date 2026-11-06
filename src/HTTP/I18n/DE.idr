@@ -1,5 +1,6 @@
 module HTTP.I18n.DE
 
+import JSON.Parser
 import HTTP.API.Decode
 import HTTP.RequestErr
 import IO.Async.Logging
@@ -39,7 +40,7 @@ export
     Status    : \{show s}
     Fehler    : \{e}
     Nachricht : \{m}
-    Details   : \{d}
+    Details   : \{either show id d}
     Pfad      : \{p}
     """
 
